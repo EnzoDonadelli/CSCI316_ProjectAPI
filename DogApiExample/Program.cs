@@ -21,7 +21,6 @@ namespace DogApiExample
 
                     string json = await response.Content.ReadAsStringAsync();
 
-                    // Let's define a matching C# class to deserialize into
                     var dogResponse = JsonSerializer.Deserialize<DogImageResponse>(json, new JsonSerializerOptions
                     {
                         PropertyNameCaseInsensitive = true
@@ -44,7 +43,6 @@ namespace DogApiExample
         }
     }
 
-    // Model class matching the JSON structure from the Dog API
     public class DogImageResponse
     {
         public string Message { get; set; }
