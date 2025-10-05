@@ -1,0 +1,12 @@
+29/09/2025 21:51:02	Este log contém informações sobre a operação de importação do script 'photo_sharing_schema.sql' para o projeto 'DatabaseProject' no computador 'ENZO' pelo usuário 'enzod.
+29/09/2025 21:51:02	Iniciada a importação do arquivo: C:\Users\enzod\Downloads\photo_sharing_schema.sql 
+29/09/2025 21:51:02	Nome do arquivo C:\Users\enzod\Downloads\photo_sharing_schema.sql (tamanho: 2137)
+29/09/2025 21:51:02	Analisando script de importação
+29/09/2025 21:51:03	Número total de lotes no script: 1
+29/09/2025 21:51:03	Número total de instruções no script: 8
+29/09/2025 21:51:03	O scrip foi importado com êxito para o projeto.
+29/09/2025 21:51:03	Analisando objetos de esquema...
+29/09/2025 21:51:03	Examinando projeto para elementos duplicados
+29/09/2025 21:51:04	Processamento de elementos duplicados concluído
+29/09/2025 21:51:04	Um resumo da importação foi salvo no seguinte local: C:\Users\enzod\Documents\CSCI Final\CSCI316_ProjectAPI\DatabaseProject\Importar Logs de Script\photo_sharing_schema_20250930025102.log.
+29/09/2025 21:51:04	Clique em Concluir para continuar...
