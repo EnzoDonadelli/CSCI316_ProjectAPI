@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using VisaoAPI.Data;
 using VisaoAPI.DTOs;
 using VisaoAPI.Models;
+using VisaoAPI.Repositories;
+using System.Security.Claims;
 
 namespace VisaoAPI.Controllers
 {
@@ -10,12 +10,16 @@ namespace VisaoAPI.Controllers
     [Route("api/[controller]")]
     public class AlbumsController : ControllerBase
     {
-        private readonly PhotoSharingDbContext _context;
+        private readonly IAlbumRepository _albumRepository;
+        private readonly IPhotoRepository _photoRepository;
+        private readonly IUserRepository _userRepository;
         private readonly ILogger<AlbumsController> _logger;
 
-        public AlbumsController(PhotoSharingDbContext context, ILogger<AlbumsController> logger)
+        public AlbumsController(IAlbumRepository albumRepository, IPhotoRepository photoRepository, IUserRepository userRepository, ILogger<AlbumsController> logger)
         {
-            _context = context;
+            _albumRepository = albumRepository;
+            _photoRepository = photoRepository;
+            _userRepository = userRepository;
             _logger = logger;
         }
 
@@ -25,22 +29,20 @@ namespace VisaoAPI.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<AlbumDto>>> GetAlbums()
         {
-            var albums = await _context.Albums
-                .Include(a => a.User)
-                .Include(a => a.Photos)
-                .Select(a => new AlbumDto
-                {
-                    AlbumId = a.AlbumId,
-                    UserId = a.UserId,
-                    Username = a.User.Username,
-                    Title = a.Title,
-                    Description = a.Description,
-                    CreatedAt = a.CreatedAt,
-                    PhotosCount = a.Photos.Count
-                })
-                .ToListAsync();
+            var albums = await _albumRepository.GetAllAsync();
+            
+            var albumDtos = albums.Select(a => new AlbumDto
+            {
+                AlbumId = a.AlbumId,
+                UserId = a.UserId,
+                Username = a.Username,
+                Title = a.Title,
+                Description = a.Description,
+                CreatedAt = a.CreatedAt,
+                PhotosCount = a.PhotosCount
+            }).ToList();
 
-            return Ok(albums);
+            return Ok(albumDtos);
         }
 
         /// <summary>
@@ -49,28 +51,25 @@ namespace VisaoAPI.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<AlbumDto>> GetAlbum(int id)
         {
-            var album = await _context.Albums
-                .Include(a => a.User)
-                .Include(a => a.Photos)
-                .Where(a => a.AlbumId == id)
-                .Select(a => new AlbumDto
-                {
-                    AlbumId = a.AlbumId,
-                    UserId = a.UserId,
-                    Username = a.User.Username,
-                    Title = a.Title,
-                    Description = a.Description,
-                    CreatedAt = a.CreatedAt,
-                    PhotosCount = a.Photos.Count
-                })
-                .FirstOrDefaultAsync();
+            var album = await _albumRepository.GetByIdWithDetailsAsync(id);
 
             if (album == null)
             {
                 return NotFound();
             }
 
-            return Ok(album);
+            var albumDto = new AlbumDto
+            {
+                AlbumId = album.AlbumId,
+                UserId = album.UserId,
+                Username = album.Username,
+                Title = album.Title,
+                Description = album.Description,
+                CreatedAt = album.CreatedAt,
+                PhotosCount = album.PhotosCount
+            };
+
+            return Ok(albumDto);
         }
 
         /// <summary>
@@ -79,23 +78,20 @@ namespace VisaoAPI.Controllers
         [HttpGet("user/{userId}")]
         public async Task<ActionResult<IEnumerable<AlbumDto>>> GetAlbumsByUser(int userId)
         {
-            var albums = await _context.Albums
-                .Where(a => a.UserId == userId)
-                .Include(a => a.User)
-                .Include(a => a.Photos)
-                .Select(a => new AlbumDto
-                {
-                    AlbumId = a.AlbumId,
-                    UserId = a.UserId,
-                    Username = a.User.Username,
-                    Title = a.Title,
-                    Description = a.Description,
-                    CreatedAt = a.CreatedAt,
-                    PhotosCount = a.Photos.Count
-                })
-                .ToListAsync();
+            var albums = await _albumRepository.GetByUserIdAsync(userId);
+            
+            var albumDtos = albums.Select(a => new AlbumDto
+            {
+                AlbumId = a.AlbumId,
+                UserId = a.UserId,
+                Username = a.Username,
+                Title = a.Title,
+                Description = a.Description,
+                CreatedAt = a.CreatedAt,
+                PhotosCount = a.PhotosCount
+            }).ToList();
 
-            return Ok(albums);
+            return Ok(albumDtos);
         }
 
         /// <summary>
@@ -104,7 +100,7 @@ namespace VisaoAPI.Controllers
         [HttpPost("user/{userId}")]
         public async Task<ActionResult<AlbumDto>> CreateAlbum(int userId, CreateAlbumDto createAlbumDto)
         {
-            var user = await _context.Users.FindAsync(userId);
+            var user = await _userRepository.GetByIdAsync(userId);
             if (user == null)
             {
                 return BadRequest("User not found");
@@ -118,17 +114,16 @@ namespace VisaoAPI.Controllers
                 CreatedAt = DateTime.Now
             };
 
-            _context.Albums.Add(album);
-            await _context.SaveChangesAsync();
+            var createdAlbum = await _albumRepository.CreateAsync(album);
 
             var albumDto = new AlbumDto
             {
-                AlbumId = album.AlbumId,
-                UserId = album.UserId,
+                AlbumId = createdAlbum.AlbumId,
+                UserId = createdAlbum.UserId,
                 Username = user.Username,
-                Title = album.Title,
-                Description = album.Description,
-                CreatedAt = album.CreatedAt,
+                Title = createdAlbum.Title,
+                Description = createdAlbum.Description,
+                CreatedAt = createdAlbum.CreatedAt,
                 PhotosCount = 0
             };
 
@@ -141,7 +136,7 @@ namespace VisaoAPI.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateAlbum(int id, UpdateAlbumDto updateAlbumDto)
         {
-            var album = await _context.Albums.FindAsync(id);
+            var album = await _albumRepository.GetByIdAsync(id);
             if (album == null)
             {
                 return NotFound();
@@ -150,7 +145,7 @@ namespace VisaoAPI.Controllers
             album.Title = updateAlbumDto.Title ?? album.Title;
             album.Description = updateAlbumDto.Description ?? album.Description;
 
-            await _context.SaveChangesAsync();
+            await _albumRepository.UpdateAsync(album);
 
             return NoContent();
         }
@@ -161,14 +156,13 @@ namespace VisaoAPI.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteAlbum(int id)
         {
-            var album = await _context.Albums.FindAsync(id);
-            if (album == null)
+            var albumExists = await _albumRepository.GetByIdAsync(id);
+            if (albumExists == null)
             {
                 return NotFound();
             }
 
-            _context.Albums.Remove(album);
-            await _context.SaveChangesAsync();
+            await _albumRepository.DeleteAsync(id);
 
             return NoContent();
         }
@@ -179,38 +173,31 @@ namespace VisaoAPI.Controllers
         [HttpGet("{id}/photos")]
         public async Task<ActionResult<IEnumerable<PhotoDto>>> GetAlbumPhotos(int id)
         {
-            var album = await _context.Albums.FindAsync(id);
+            var album = await _albumRepository.GetByIdAsync(id);
             if (album == null)
             {
                 return NotFound();
             }
 
-            var photos = await _context.Photos
-                .Where(p => p.AlbumId == id)
-                .Include(p => p.User)
-                .Include(p => p.Album)
-                .Include(p => p.PhotoTags)
-                .ThenInclude(pt => pt.Tag)
-                .Include(p => p.Likes)
-                .Include(p => p.Comments)
-                .Select(p => new PhotoDto
-                {
-                    PhotoId = p.PhotoId,
-                    UserId = p.UserId,
-                    Username = p.User.Username,
-                    AlbumId = p.AlbumId,
-                    AlbumTitle = p.Album != null ? p.Album.Title : null,
-                    Title = p.Title,
-                    Description = p.Description,
-                    ImageUrl = p.ImageUrl,
-                    UploadedAt = p.UploadedAt,
-                    Tags = p.PhotoTags.Select(pt => pt.Tag.TagName).ToList(),
-                    LikesCount = p.Likes.Count,
-                    CommentsCount = p.Comments.Count
-                })
-                .ToListAsync();
+            var photos = await _photoRepository.GetByAlbumIdAsync(id);
 
-            return Ok(photos);
+            var photoDtos = photos.Select(p => new PhotoDto
+            {
+                PhotoId = p.PhotoId,
+                UserId = p.UserId,
+                Username = "", // Will need to be populated by a method that includes username
+                AlbumId = p.AlbumId,
+                AlbumTitle = album.Title,
+                Title = p.Title,
+                Description = p.Description,
+                ImageUrl = p.ImageUrl,
+                UploadedAt = p.UploadedAt,
+                Tags = new List<string>(), // Will need to be populated separately
+                LikesCount = 0, // Will need to be populated separately
+                CommentsCount = 0 // Will need to be populated separately
+            }).ToList();
+
+            return Ok(photoDtos);
         }
     }
 }

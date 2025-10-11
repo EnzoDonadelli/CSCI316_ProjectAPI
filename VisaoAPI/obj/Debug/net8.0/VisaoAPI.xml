@@ -39,6 +39,39 @@
             Get photos in an album
             </summary>
         </member>
+        <member name="M:VisaoAPI.Controllers.AuthController.Register(VisaoAPI.DTOs.RegisterDto)">
+            <summary>
+            Register a new user account
+            </summary>
+            <param name="registerDto">User registration data</param>
+            <returns>Authentication result with JWT token</returns>
+        </member>
+        <member name="M:VisaoAPI.Controllers.AuthController.Login(VisaoAPI.DTOs.LoginDto)">
+            <summary>
+            Login with username/email and password
+            </summary>
+            <param name="loginDto">Login credentials</param>
+            <returns>Authentication result with JWT token</returns>
+        </member>
+        <member name="M:VisaoAPI.Controllers.AuthController.GetProfile">
+            <summary>
+            Get current user profile (requires authentication)
+            </summary>
+            <returns>Current user information</returns>
+        </member>
+        <member name="M:VisaoAPI.Controllers.AuthController.ChangePassword(VisaoAPI.DTOs.ChangePasswordDto)">
+            <summary>
+            Change user password (requires authentication)
+            </summary>
+            <param name="changePasswordDto">Password change data</param>
+            <returns>Result of password change operation</returns>
+        </member>
+        <member name="M:VisaoAPI.Controllers.AuthController.ValidateToken">
+            <summary>
+            Validate JWT token (useful for frontend token validation)
+            </summary>
+            <returns>Token validation result</returns>
+        </member>
         <member name="M:VisaoAPI.Controllers.CommentsController.GetPhotoComments(System.Int32)">
             <summary>
             Get comments for a photo
@@ -119,6 +152,21 @@
             Get likes count for a photo
             </summary>
         </member>
+        <member name="M:VisaoAPI.Controllers.MyPhotosController.GetMyPhotos">
+            <summary>
+            Get current user's photos only (requires authentication)
+            </summary>
+        </member>
+        <member name="M:VisaoAPI.Controllers.MyPhotosController.UpdateMyPhoto(System.Int32,VisaoAPI.DTOs.UpdatePhotoDto)">
+            <summary>
+            Update a photo (only if it belongs to the authenticated user)
+            </summary>
+        </member>
+        <member name="M:VisaoAPI.Controllers.MyPhotosController.DeleteMyPhoto(System.Int32)">
+            <summary>
+            Delete a photo (only if it belongs to the authenticated user)
+            </summary>
+        </member>
         <member name="M:VisaoAPI.Controllers.PhotosController.GetPhotos">
             <summary>
             Get all photos
@@ -187,6 +235,18 @@
         <member name="M:VisaoAPI.Controllers.UsersController.DeleteUser(System.Int32)">
             <summary>
             Delete a user
+            </summary>
+        </member>
+        <member name="T:VisaoAPI.Models.AlbumWithDetails">
+            <summary>
+            Album model with additional details from joined tables (User, Photos count)
+            Used by repositories when fetching albums with related data
+            </summary>
+        </member>
+        <member name="T:VisaoAPI.Models.PhotoWithDetails">
+            <summary>
+            Photo model with additional details from joined tables (User, Album)
+            Used by repositories when fetching photos with related data
             </summary>
         </member>
     </members>

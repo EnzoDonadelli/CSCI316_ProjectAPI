@@ -1,6 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 using VisaoAPI.Data;
 using System.Reflection;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using VisaoAPI.Repositories;
+using VisaoAPI.Services;
+using BCrypt.Net;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,6 +31,34 @@ builder.Services.AddSwaggerGen(c =>
         }
     });
 
+    // Add JWT Authentication to Swagger
+    c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    {
+        Description = "JWT Authorization header using the Bearer scheme. Enter 'Bearer' [space] and then your token in the text input below.\r\n\r\nExample: \"Bearer 12345abcdef\"",
+        Name = "Authorization",
+        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
+        Scheme = "Bearer"
+    });
+
+    c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement()
+    {
+        {
+            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+            {
+                Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                {
+                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                },
+                Scheme = "oauth2",
+                Name = "Bearer",
+                In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+            },
+            new List<string>()
+        }
+    });
+
     // Include XML comments for better documentation
     var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
     var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
@@ -46,6 +80,45 @@ builder.Services.AddCors(options =>
         });
 });
 
+// Add JWT Authentication
+var jwtSecretKey = builder.Configuration["JwtSettings:SecretKey"];
+var jwtIssuer = builder.Configuration["JwtSettings:Issuer"];
+var jwtAudience = builder.Configuration["JwtSettings:Audience"];
+
+if (string.IsNullOrEmpty(jwtSecretKey))
+{
+    throw new InvalidOperationException("JWT SecretKey is not configured in appsettings.json");
+}
+if (string.IsNullOrEmpty(jwtIssuer))
+{
+    throw new InvalidOperationException("JWT Issuer is not configured in appsettings.json");
+}
+if (string.IsNullOrEmpty(jwtAudience))
+{
+    throw new InvalidOperationException("JWT Audience is not configured in appsettings.json");
+}
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = jwtIssuer,
+            ValidAudience = jwtAudience,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecretKey))
+        };
+    });
+
+// Register dependencies
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IPhotoRepository, PhotoRepository>();
+builder.Services.AddScoped<IAlbumRepository, AlbumRepository>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -62,6 +135,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
@@ -73,40 +147,20 @@ try
     {
         var context = scope.ServiceProvider.GetRequiredService<PhotoSharingDbContext>();
         
-        // Ensure database is created
+        // Ensure database exists (but don't drop existing data)
         context.Database.EnsureCreated();
         
-        // Clear existing data and insert fresh sample data every time
-        try
+        // Only seed sample data if no users exist
+        if (!context.Users.Any())
         {
-            context.Database.ExecuteSqlRaw("DELETE FROM Comments");
-            context.Database.ExecuteSqlRaw("DELETE FROM Likes");
-            context.Database.ExecuteSqlRaw("DELETE FROM Followers");
-            context.Database.ExecuteSqlRaw("DELETE FROM Photo_Tags");
-            context.Database.ExecuteSqlRaw("DELETE FROM Photos");
-            context.Database.ExecuteSqlRaw("DELETE FROM Albums");
-            context.Database.ExecuteSqlRaw("DELETE FROM Tags");
-            context.Database.ExecuteSqlRaw("DELETE FROM Users");
+            Console.WriteLine("🌱 Seeding initial sample data...");
             
-            // Reset identity columns
-            context.Database.ExecuteSqlRaw("DBCC CHECKIDENT ('Users', RESEED, 0)");
-            context.Database.ExecuteSqlRaw("DBCC CHECKIDENT ('Albums', RESEED, 0)");
-            context.Database.ExecuteSqlRaw("DBCC CHECKIDENT ('Photos', RESEED, 0)");
-            context.Database.ExecuteSqlRaw("DBCC CHECKIDENT ('Tags', RESEED, 0)");
-            context.Database.ExecuteSqlRaw("DBCC CHECKIDENT ('Likes', RESEED, 0)");
-            context.Database.ExecuteSqlRaw("DBCC CHECKIDENT ('Comments', RESEED, 0)");
-        }
-        catch
-        {
-            // Tables might not exist yet, ignore errors
-        }
-        
-        // Always insert fresh sample data
+            // Insert initial sample data with properly hashed passwords
         var user1 = new VisaoAPI.Models.User
         {
             Username = "johndoe",
             Email = "john@example.com",
-            PasswordHash = "hashed_password_123",
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("password123"), // Password: password123
             FullName = "John Doe",
             Bio = "Landscape photographer.",
             ProfilePic = "profile1.jpg",
@@ -117,7 +171,7 @@ try
         {
             Username = "janesmith",
             Email = "jane@example.com",
-            PasswordHash = "hashed_password_456",
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("password456"), // Password: password456
             FullName = "Jane Smith",
             Bio = "Wedding photographer.",
             ProfilePic = "profile2.jpg",
@@ -232,10 +286,15 @@ try
         context.Comments.AddRange(comments);
         context.SaveChanges();
 
-        Console.WriteLine("✅ Fresh sample data created successfully!");
-        Console.WriteLine($"✅ Created {context.Users.Count()} users");
-        Console.WriteLine($"✅ Created {context.Photos.Count()} photos");
-        Console.WriteLine($"✅ Created {context.Albums.Count()} albums");
+            Console.WriteLine("✅ Initial sample data created successfully!");
+            Console.WriteLine($"✅ Created {context.Users.Count()} users");
+            Console.WriteLine($"✅ Created {context.Photos.Count()} photos");
+            Console.WriteLine($"✅ Created {context.Albums.Count()} albums");
+        }
+        else
+        {
+            Console.WriteLine($"📊 Database already contains {context.Users.Count()} users - skipping sample data");
+        }
     }
 }
 catch (Exception ex)
