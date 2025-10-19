@@ -11,6 +11,8 @@ namespace VisaoAPI.Repositories
         Task<Album> CreateAsync(Album album);
         Task<Album> UpdateAsync(Album album);
         Task<bool> DeleteAsync(int id);
+        Task<bool> ExistsAsync(int id);
+        Task<bool> ExistsAndBelongsToUserAsync(int albumId, int userId);
         Task<int> GetPhotosCountAsync(int albumId);
     }
 }

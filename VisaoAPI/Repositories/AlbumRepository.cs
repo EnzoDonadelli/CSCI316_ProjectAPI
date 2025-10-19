@@ -129,6 +129,24 @@ namespace VisaoAPI.Repositories
             }
         }
 
+        public async Task<bool> ExistsAsync(int id)
+        {
+            const string sql = "SELECT COUNT(1) FROM Albums WHERE AlbumId = @Id";
+
+            using var connection = new SqlConnection(_connectionString);
+            var count = await connection.QuerySingleAsync<int>(sql, new { Id = id });
+            return count > 0;
+        }
+
+        public async Task<bool> ExistsAndBelongsToUserAsync(int albumId, int userId)
+        {
+            const string sql = "SELECT COUNT(1) FROM Albums WHERE AlbumId = @AlbumId AND UserId = @UserId";
+
+            using var connection = new SqlConnection(_connectionString);
+            var count = await connection.QuerySingleAsync<int>(sql, new { AlbumId = albumId, UserId = userId });
+            return count > 0;
+        }
+
         public async Task<int> GetPhotosCountAsync(int albumId)
         {
             const string sql = "SELECT COUNT(*) FROM Photos WHERE AlbumId = @AlbumId";

@@ -1,8 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using VisaoAPI.Data;
 using VisaoAPI.DTOs;
 using VisaoAPI.Models;
+using VisaoAPI.Repositories;
 
 namespace VisaoAPI.Controllers
 {
@@ -10,12 +9,20 @@ namespace VisaoAPI.Controllers
     [Route("api/[controller]")]
     public class LikesController : ControllerBase
     {
-        private readonly PhotoSharingDbContext _context;
+        private readonly ILikeRepository _likeRepository;
+        private readonly IPhotoRepository _photoRepository;
+        private readonly IUserRepository _userRepository;
         private readonly ILogger<LikesController> _logger;
 
-        public LikesController(PhotoSharingDbContext context, ILogger<LikesController> logger)
+        public LikesController(
+            ILikeRepository likeRepository,
+            IPhotoRepository photoRepository,
+            IUserRepository userRepository,
+            ILogger<LikesController> logger)
         {
-            _context = context;
+            _likeRepository = likeRepository;
+            _photoRepository = photoRepository;
+            _userRepository = userRepository;
             _logger = logger;
         }
 
@@ -25,27 +32,32 @@ namespace VisaoAPI.Controllers
         [HttpGet("photo/{photoId}")]
         public async Task<ActionResult<IEnumerable<LikeDto>>> GetPhotoLikes(int photoId)
         {
-            var photo = await _context.Photos.FindAsync(photoId);
-            if (photo == null)
+            try
             {
-                return NotFound("Photo not found");
-            }
+                var photoExists = await _photoRepository.ExistsAsync(photoId);
+                if (!photoExists)
+                {
+                    return NotFound("Photo not found");
+                }
 
-            var likes = await _context.Likes
-                .Where(l => l.PhotoId == photoId)
-                .Include(l => l.User)
-                .Select(l => new LikeDto
+                var likes = await _likeRepository.GetByPhotoIdWithDetailsAsync(photoId);
+
+                var likeDtos = likes.Select(l => new LikeDto
                 {
                     LikeId = l.LikeId,
                     UserId = l.UserId,
-                    Username = l.User.Username,
+                    Username = l.Username,
                     PhotoId = l.PhotoId,
                     LikedAt = l.LikedAt
-                })
-                .OrderByDescending(l => l.LikedAt)
-                .ToListAsync();
+                }).ToList();
 
-            return Ok(likes);
+                return Ok(likeDtos);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting likes for photo: {PhotoId}", photoId);
+                return StatusCode(500, "An error occurred while retrieving likes");
+            }
         }
 
         /// <summary>
@@ -54,47 +66,55 @@ namespace VisaoAPI.Controllers
         [HttpPost("photo/{photoId}/user/{userId}")]
         public async Task<ActionResult<LikeDto>> LikePhoto(int photoId, int userId)
         {
-            var photo = await _context.Photos.FindAsync(photoId);
-            if (photo == null)
+            try
             {
-                return NotFound("Photo not found");
+                var photoExists = await _photoRepository.ExistsAsync(photoId);
+                if (!photoExists)
+                {
+                    return NotFound("Photo not found");
+                }
+
+                var userExists = await _userRepository.ExistsAsync(userId);
+                if (!userExists)
+                {
+                    return BadRequest("User not found");
+                }
+
+                // Check if user already liked this photo
+                var existingLike = await _likeRepository.GetByUserAndPhotoAsync(userId, photoId);
+                if (existingLike != null)
+                {
+                    return BadRequest("User has already liked this photo");
+                }
+
+                var like = new Like
+                {
+                    UserId = userId,
+                    PhotoId = photoId,
+                    LikedAt = DateTime.Now
+                };
+
+                var createdLike = await _likeRepository.CreateAsync(like);
+
+                // Get user details for response
+                var user = await _userRepository.GetByIdAsync(userId);
+
+                var likeDto = new LikeDto
+                {
+                    LikeId = createdLike.LikeId,
+                    UserId = createdLike.UserId,
+                    Username = user?.Username ?? "",
+                    PhotoId = createdLike.PhotoId,
+                    LikedAt = createdLike.LikedAt
+                };
+
+                return CreatedAtAction(nameof(GetLike), new { id = createdLike.LikeId }, likeDto);
             }
-
-            var user = await _context.Users.FindAsync(userId);
-            if (user == null)
+            catch (Exception ex)
             {
-                return BadRequest("User not found");
+                _logger.LogError(ex, "Error liking photo: {PhotoId} by user: {UserId}", photoId, userId);
+                return StatusCode(500, "An error occurred while liking the photo");
             }
-
-            // Check if user already liked this photo
-            var existingLike = await _context.Likes
-                .FirstOrDefaultAsync(l => l.UserId == userId && l.PhotoId == photoId);
-
-            if (existingLike != null)
-            {
-                return BadRequest("User has already liked this photo");
-            }
-
-            var like = new Like
-            {
-                UserId = userId,
-                PhotoId = photoId,
-                LikedAt = DateTime.Now
-            };
-
-            _context.Likes.Add(like);
-            await _context.SaveChangesAsync();
-
-            var likeDto = new LikeDto
-            {
-                LikeId = like.LikeId,
-                UserId = like.UserId,
-                Username = user.Username,
-                PhotoId = like.PhotoId,
-                LikedAt = like.LikedAt
-            };
-
-            return CreatedAtAction(nameof(GetLike), new { id = like.LikeId }, likeDto);
         }
 
         /// <summary>
@@ -103,18 +123,21 @@ namespace VisaoAPI.Controllers
         [HttpDelete("photo/{photoId}/user/{userId}")]
         public async Task<IActionResult> UnlikePhoto(int photoId, int userId)
         {
-            var like = await _context.Likes
-                .FirstOrDefaultAsync(l => l.UserId == userId && l.PhotoId == photoId);
-
-            if (like == null)
+            try
             {
-                return NotFound("Like not found");
+                var deleted = await _likeRepository.DeleteByUserAndPhotoAsync(userId, photoId);
+                if (!deleted)
+                {
+                    return NotFound("Like not found");
+                }
+
+                return NoContent();
             }
-
-            _context.Likes.Remove(like);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error unliking photo: {PhotoId} by user: {UserId}", photoId, userId);
+                return StatusCode(500, "An error occurred while unliking the photo");
+            }
         }
 
         /// <summary>
@@ -123,25 +146,31 @@ namespace VisaoAPI.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<LikeDto>> GetLike(int id)
         {
-            var like = await _context.Likes
-                .Include(l => l.User)
-                .Where(l => l.LikeId == id)
-                .Select(l => new LikeDto
-                {
-                    LikeId = l.LikeId,
-                    UserId = l.UserId,
-                    Username = l.User.Username,
-                    PhotoId = l.PhotoId,
-                    LikedAt = l.LikedAt
-                })
-                .FirstOrDefaultAsync();
-
-            if (like == null)
+            try
             {
-                return NotFound();
-            }
+                var like = await _likeRepository.GetByIdWithDetailsAsync(id);
 
-            return Ok(like);
+                if (like == null)
+                {
+                    return NotFound();
+                }
+
+                var likeDto = new LikeDto
+                {
+                    LikeId = like.LikeId,
+                    UserId = like.UserId,
+                    Username = like.Username,
+                    PhotoId = like.PhotoId,
+                    LikedAt = like.LikedAt
+                };
+
+                return Ok(likeDto);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting like: {LikeId}", id);
+                return StatusCode(500, "An error occurred while retrieving the like");
+            }
         }
 
         /// <summary>
@@ -150,10 +179,16 @@ namespace VisaoAPI.Controllers
         [HttpGet("photo/{photoId}/user/{userId}/check")]
         public async Task<ActionResult<bool>> CheckUserLikedPhoto(int photoId, int userId)
         {
-            var liked = await _context.Likes
-                .AnyAsync(l => l.UserId == userId && l.PhotoId == photoId);
-
-            return Ok(liked);
+            try
+            {
+                var like = await _likeRepository.GetByUserAndPhotoAsync(userId, photoId);
+                return Ok(like != null);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error checking if user liked photo: {PhotoId}, user: {UserId}", photoId, userId);
+                return StatusCode(500, "An error occurred while checking like status");
+            }
         }
 
         /// <summary>
@@ -162,14 +197,22 @@ namespace VisaoAPI.Controllers
         [HttpGet("photo/{photoId}/count")]
         public async Task<ActionResult<int>> GetPhotoLikesCount(int photoId)
         {
-            var photo = await _context.Photos.FindAsync(photoId);
-            if (photo == null)
+            try
             {
-                return NotFound("Photo not found");
-            }
+                var photoExists = await _photoRepository.ExistsAsync(photoId);
+                if (!photoExists)
+                {
+                    return NotFound("Photo not found");
+                }
 
-            var count = await _context.Likes.CountAsync(l => l.PhotoId == photoId);
-            return Ok(count);
+                var count = await _likeRepository.GetCountByPhotoIdAsync(photoId);
+                return Ok(count);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting likes count for photo: {PhotoId}", photoId);
+                return StatusCode(500, "An error occurred while retrieving likes count");
+            }
         }
     }
 }

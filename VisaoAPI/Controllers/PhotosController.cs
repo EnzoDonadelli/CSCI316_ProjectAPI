@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using VisaoAPI.Data;
 using VisaoAPI.DTOs;
 using VisaoAPI.Models;
+using VisaoAPI.Repositories;
+using System.Security.Claims;
 
 namespace VisaoAPI.Controllers
 {
@@ -10,12 +10,32 @@ namespace VisaoAPI.Controllers
     [Route("api/[controller]")]
     public class PhotosController : ControllerBase
     {
-        private readonly PhotoSharingDbContext _context;
+        private readonly IPhotoRepository _photoRepository;
+        private readonly ILikeRepository _likeRepository;
+        private readonly ICommentRepository _commentRepository;
+        private readonly IPhotoTagRepository _photoTagRepository;
+        private readonly IUserRepository _userRepository;
+        private readonly IAlbumRepository _albumRepository;
+        private readonly ITagRepository _tagRepository;
         private readonly ILogger<PhotosController> _logger;
 
-        public PhotosController(PhotoSharingDbContext context, ILogger<PhotosController> logger)
+        public PhotosController(
+            IPhotoRepository photoRepository, 
+            ILikeRepository likeRepository,
+            ICommentRepository commentRepository,
+            IPhotoTagRepository photoTagRepository,
+            IUserRepository userRepository,
+            IAlbumRepository albumRepository,
+            ITagRepository tagRepository,
+            ILogger<PhotosController> logger)
         {
-            _context = context;
+            _photoRepository = photoRepository;
+            _likeRepository = likeRepository;
+            _commentRepository = commentRepository;
+            _photoTagRepository = photoTagRepository;
+            _userRepository = userRepository;
+            _albumRepository = albumRepository;
+            _tagRepository = tagRepository;
             _logger = logger;
         }
 
@@ -25,31 +45,163 @@ namespace VisaoAPI.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<PhotoDto>>> GetPhotos()
         {
-            var photos = await _context.Photos
-                .Include(p => p.User)
-                .Include(p => p.Album)
-                .Include(p => p.PhotoTags)
-                .ThenInclude(pt => pt.Tag)
-                .Include(p => p.Likes)
-                .Include(p => p.Comments)
-                .Select(p => new PhotoDto
+            try
+            {
+                var photos = await _photoRepository.GetAllAsync();
+                
+                var photoDtos = new List<PhotoDto>();
+                foreach (var photo in photos)
                 {
-                    PhotoId = p.PhotoId,
-                    UserId = p.UserId,
-                    Username = p.User.Username,
-                    AlbumId = p.AlbumId,
-                    AlbumTitle = p.Album != null ? p.Album.Title : null,
-                    Title = p.Title,
-                    Description = p.Description,
-                    ImageUrl = p.ImageUrl,
-                    UploadedAt = p.UploadedAt,
-                    Tags = p.PhotoTags.Select(pt => pt.Tag.TagName).ToList(),
-                    LikesCount = p.Likes.Count,
-                    CommentsCount = p.Comments.Count
-                })
-                .ToListAsync();
+                    var tags = await _photoTagRepository.GetTagNamesByPhotoIdAsync(photo.PhotoId);
+                    var likesCount = await _likeRepository.GetCountByPhotoIdAsync(photo.PhotoId);
+                    var commentsCount = await _commentRepository.GetCountByPhotoIdAsync(photo.PhotoId);
+                    
+                    photoDtos.Add(new PhotoDto
+                    {
+                        PhotoId = photo.PhotoId,
+                        UserId = photo.UserId,
+                        Username = photo.Username,
+                        AlbumId = photo.AlbumId,
+                        AlbumTitle = photo.AlbumTitle,
+                        Title = photo.Title,
+                        Description = photo.Description,
+                        ImageUrl = photo.ImageUrl,
+                        UploadedAt = photo.UploadedAt,
+                        Tags = tags.ToList(),
+                        LikesCount = likesCount,
+                        CommentsCount = commentsCount
+                    });
+                }
 
-            return Ok(photos);
+                return Ok(photoDtos);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting all photos");
+                return StatusCode(500, "An error occurred while retrieving photos");
+            }
+        }
+
+        /// <summary>
+        /// Get first 25 photos by tag name
+        /// </summary>
+        [HttpGet("tag/{tagName}")]
+        public async Task<ActionResult<IEnumerable<PhotoDto>>> GetPhotosByTag(string tagName, [FromQuery] int limit = 25)
+        {
+            try
+            {
+                var photos = await _photoRepository.GetPhotosByTagAsync(tagName, limit);
+                
+                var photoDtos = new List<PhotoDto>();
+                foreach (var photo in photos)
+                {
+                    var tags = await _photoTagRepository.GetTagNamesByPhotoIdAsync(photo.PhotoId);
+                    var likesCount = await _likeRepository.GetCountByPhotoIdAsync(photo.PhotoId);
+                    var commentsCount = await _commentRepository.GetCountByPhotoIdAsync(photo.PhotoId);
+                    
+                    photoDtos.Add(new PhotoDto
+                    {
+                        PhotoId = photo.PhotoId,
+                        UserId = photo.UserId,
+                        Username = photo.Username,
+                        AlbumId = photo.AlbumId,
+                        AlbumTitle = photo.AlbumTitle,
+                        Title = photo.Title,
+                        Description = photo.Description,
+                        ImageUrl = photo.ImageUrl,
+                        UploadedAt = photo.UploadedAt,
+                        Tags = tags.ToList(),
+                        LikesCount = likesCount,
+                        CommentsCount = commentsCount
+                    });
+                }
+
+                return Ok(photoDtos);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting photos by tag: {TagName}", tagName);
+                return StatusCode(500, "An error occurred while retrieving photos by tag");
+            }
+        }
+
+        /// <summary>
+        /// Get photos by album ID
+        /// </summary>
+        [HttpGet("album/{albumId}")]
+        public async Task<ActionResult<IEnumerable<PhotoDto>>> GetPhotosByAlbum(int albumId)
+        {
+            try
+            {
+                var photos = await _photoRepository.GetByAlbumIdAsync(albumId);
+                
+                var photoDtos = new List<PhotoDto>();
+                foreach (var photo in photos)
+                {
+                    var tags = await _photoTagRepository.GetTagNamesByPhotoIdAsync(photo.PhotoId);
+                    var likesCount = await _likeRepository.GetCountByPhotoIdAsync(photo.PhotoId);
+                    var commentsCount = await _commentRepository.GetCountByPhotoIdAsync(photo.PhotoId);
+                    
+                    photoDtos.Add(new PhotoDto
+                    {
+                        PhotoId = photo.PhotoId,
+                        UserId = photo.UserId,
+                        Username = photo.Username,
+                        AlbumId = photo.AlbumId,
+                        AlbumTitle = photo.AlbumTitle,
+                        Title = photo.Title,
+                        Description = photo.Description,
+                        ImageUrl = photo.ImageUrl,
+                        UploadedAt = photo.UploadedAt,
+                        Tags = tags.ToList(),
+                        LikesCount = likesCount,
+                        CommentsCount = commentsCount
+                    });
+                }
+
+                return Ok(photoDtos);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting photos by album: {AlbumId}", albumId);
+                return StatusCode(500, "An error occurred while retrieving photos by album");
+            }
+        }
+
+        /// <summary>
+        /// Get users who liked a specific photo
+        /// </summary>
+        [HttpGet("{id}/likes/users")]
+        public async Task<ActionResult<IEnumerable<UserDto>>> GetUsersWhoLikedPhoto(int id)
+        {
+            try
+            {
+                var photoExists = await _photoRepository.ExistsAsync(id);
+                if (!photoExists)
+                {
+                    return NotFound("Photo not found");
+                }
+
+                var users = await _likeRepository.GetUsersWhoLikedPhotoAsync(id);
+                
+                var userDtos = users.Select(u => new UserDto
+                {
+                    UserId = u.UserId,
+                    Username = u.Username,
+                    Email = u.Email,
+                    FullName = u.FullName,
+                    Bio = u.Bio,
+                    ProfilePic = u.ProfilePic,
+                    CreatedAt = u.CreatedAt
+                }).ToList();
+
+                return Ok(userDtos);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting users who liked photo: {PhotoId}", id);
+                return StatusCode(500, "An error occurred while retrieving users who liked the photo");
+            }
         }
 
         /// <summary>
@@ -58,37 +210,42 @@ namespace VisaoAPI.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<PhotoDto>> GetPhoto(int id)
         {
-            var photo = await _context.Photos
-                .Include(p => p.User)
-                .Include(p => p.Album)
-                .Include(p => p.PhotoTags)
-                .ThenInclude(pt => pt.Tag)
-                .Include(p => p.Likes)
-                .Include(p => p.Comments)
-                .Where(p => p.PhotoId == id)
-                .Select(p => new PhotoDto
-                {
-                    PhotoId = p.PhotoId,
-                    UserId = p.UserId,
-                    Username = p.User.Username,
-                    AlbumId = p.AlbumId,
-                    AlbumTitle = p.Album != null ? p.Album.Title : null,
-                    Title = p.Title,
-                    Description = p.Description,
-                    ImageUrl = p.ImageUrl,
-                    UploadedAt = p.UploadedAt,
-                    Tags = p.PhotoTags.Select(pt => pt.Tag.TagName).ToList(),
-                    LikesCount = p.Likes.Count,
-                    CommentsCount = p.Comments.Count
-                })
-                .FirstOrDefaultAsync();
-
-            if (photo == null)
+            try
             {
-                return NotFound();
-            }
+                var photo = await _photoRepository.GetByIdWithDetailsAsync(id);
 
-            return Ok(photo);
+                if (photo == null)
+                {
+                    return NotFound();
+                }
+
+                var tags = await _photoTagRepository.GetTagNamesByPhotoIdAsync(id);
+                var likesCount = await _likeRepository.GetCountByPhotoIdAsync(id);
+                var commentsCount = await _commentRepository.GetCountByPhotoIdAsync(id);
+
+                var photoDto = new PhotoDto
+                {
+                    PhotoId = photo.PhotoId,
+                    UserId = photo.UserId,
+                    Username = photo.Username,
+                    AlbumId = photo.AlbumId,
+                    AlbumTitle = photo.AlbumTitle,
+                    Title = photo.Title,
+                    Description = photo.Description,
+                    ImageUrl = photo.ImageUrl,
+                    UploadedAt = photo.UploadedAt,
+                    Tags = tags.ToList(),
+                    LikesCount = likesCount,
+                    CommentsCount = commentsCount
+                };
+
+                return Ok(photoDto);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting photo with ID: {PhotoId}", id);
+                return StatusCode(500, "An error occurred while retrieving the photo");
+            }
         }
 
         /// <summary>
@@ -97,32 +254,41 @@ namespace VisaoAPI.Controllers
         [HttpGet("user/{userId}")]
         public async Task<ActionResult<IEnumerable<PhotoDto>>> GetPhotosByUser(int userId)
         {
-            var photos = await _context.Photos
-                .Where(p => p.UserId == userId)
-                .Include(p => p.User)
-                .Include(p => p.Album)
-                .Include(p => p.PhotoTags)
-                .ThenInclude(pt => pt.Tag)
-                .Include(p => p.Likes)
-                .Include(p => p.Comments)
-                .Select(p => new PhotoDto
+            try
+            {
+                var photos = await _photoRepository.GetByUserIdAsync(userId);
+                
+                var photoDtos = new List<PhotoDto>();
+                foreach (var photo in photos)
                 {
-                    PhotoId = p.PhotoId,
-                    UserId = p.UserId,
-                    Username = p.User.Username,
-                    AlbumId = p.AlbumId,
-                    AlbumTitle = p.Album != null ? p.Album.Title : null,
-                    Title = p.Title,
-                    Description = p.Description,
-                    ImageUrl = p.ImageUrl,
-                    UploadedAt = p.UploadedAt,
-                    Tags = p.PhotoTags.Select(pt => pt.Tag.TagName).ToList(),
-                    LikesCount = p.Likes.Count,
-                    CommentsCount = p.Comments.Count
-                })
-                .ToListAsync();
+                    var tags = await _photoTagRepository.GetTagNamesByPhotoIdAsync(photo.PhotoId);
+                    var likesCount = await _likeRepository.GetCountByPhotoIdAsync(photo.PhotoId);
+                    var commentsCount = await _commentRepository.GetCountByPhotoIdAsync(photo.PhotoId);
+                    
+                    photoDtos.Add(new PhotoDto
+                    {
+                        PhotoId = photo.PhotoId,
+                        UserId = photo.UserId,
+                        Username = photo.Username,
+                        AlbumId = photo.AlbumId,
+                        AlbumTitle = photo.AlbumTitle,
+                        Title = photo.Title,
+                        Description = photo.Description,
+                        ImageUrl = photo.ImageUrl,
+                        UploadedAt = photo.UploadedAt,
+                        Tags = tags.ToList(),
+                        LikesCount = likesCount,
+                        CommentsCount = commentsCount
+                    });
+                }
 
-            return Ok(photos);
+                return Ok(photoDtos);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting photos by user: {UserId}", userId);
+                return StatusCode(500, "An error occurred while retrieving photos by user");
+            }
         }
 
         /// <summary>
@@ -131,58 +297,88 @@ namespace VisaoAPI.Controllers
         [HttpPost("user/{userId}")]
         public async Task<ActionResult<PhotoDto>> CreatePhoto(int userId, CreatePhotoDto createPhotoDto)
         {
-            var user = await _context.Users.FindAsync(userId);
-            if (user == null)
+            try
             {
-                return BadRequest("User not found");
-            }
-
-            if (createPhotoDto.AlbumId.HasValue)
-            {
-                var album = await _context.Albums
-                    .Where(a => a.AlbumId == createPhotoDto.AlbumId && a.UserId == userId)
-                    .FirstOrDefaultAsync();
-                if (album == null)
+                var userExists = await _userRepository.ExistsAsync(userId);
+                if (!userExists)
                 {
-                    return BadRequest("Album not found or doesn't belong to user");
-                }
-            }
-
-            var photo = new Photo
-            {
-                UserId = userId,
-                AlbumId = createPhotoDto.AlbumId,
-                Title = createPhotoDto.Title,
-                Description = createPhotoDto.Description,
-                ImageUrl = createPhotoDto.ImageUrl,
-                UploadedAt = DateTime.Now
-            };
-
-            _context.Photos.Add(photo);
-            await _context.SaveChangesAsync();
-
-            // Add tags
-            foreach (var tagName in createPhotoDto.Tags)
-            {
-                var tag = await _context.Tags.FirstOrDefaultAsync(t => t.TagName == tagName);
-                if (tag == null)
-                {
-                    tag = new Tag { TagName = tagName };
-                    _context.Tags.Add(tag);
-                    await _context.SaveChangesAsync();
+                    return BadRequest("User not found");
                 }
 
-                var photoTag = new PhotoTag
+                if (createPhotoDto.AlbumId.HasValue)
                 {
-                    PhotoId = photo.PhotoId,
-                    TagId = tag.TagId
+                    var albumBelongsToUser = await _albumRepository.ExistsAndBelongsToUserAsync(createPhotoDto.AlbumId.Value, userId);
+                    if (!albumBelongsToUser)
+                    {
+                        return BadRequest("Album not found or doesn't belong to user");
+                    }
+                }
+
+                var photo = new Photo
+                {
+                    UserId = userId,
+                    AlbumId = createPhotoDto.AlbumId,
+                    Title = createPhotoDto.Title,
+                    Description = createPhotoDto.Description,
+                    ImageUrl = createPhotoDto.ImageUrl,
+                    UploadedAt = DateTime.Now
                 };
-                _context.PhotoTags.Add(photoTag);
+
+                var createdPhoto = await _photoRepository.CreateAsync(photo);
+
+                // Add tags
+                foreach (var tagName in createPhotoDto.Tags)
+                {
+                    var tag = await _tagRepository.GetByNameAsync(tagName);
+                    if (tag == null)
+                    {
+                        tag = new Tag { TagName = tagName };
+                        tag = await _tagRepository.CreateAsync(tag);
+                    }
+
+                    var photoTag = new PhotoTag
+                    {
+                        PhotoId = createdPhoto.PhotoId,
+                        TagId = tag.TagId
+                    };
+                    await _photoTagRepository.CreateAsync(photoTag);
+                }
+
+                // Get the photo with details for response
+                var photoWithDetails = await _photoRepository.GetByIdWithDetailsAsync(createdPhoto.PhotoId);
+                if (photoWithDetails == null)
+                {
+                    _logger.LogError("Created photo not found after creation: {PhotoId}", createdPhoto.PhotoId);
+                    return StatusCode(500, "An error occurred while retrieving the created photo");
+                }
+
+                var tags = await _photoTagRepository.GetTagNamesByPhotoIdAsync(createdPhoto.PhotoId);
+                var likesCount = await _likeRepository.GetCountByPhotoIdAsync(createdPhoto.PhotoId);
+                var commentsCount = await _commentRepository.GetCountByPhotoIdAsync(createdPhoto.PhotoId);
+
+                var photoDto = new PhotoDto
+                {
+                    PhotoId = photoWithDetails.PhotoId,
+                    UserId = photoWithDetails.UserId,
+                    Username = photoWithDetails.Username,
+                    AlbumId = photoWithDetails.AlbumId,
+                    AlbumTitle = photoWithDetails.AlbumTitle,
+                    Title = photoWithDetails.Title,
+                    Description = photoWithDetails.Description,
+                    ImageUrl = photoWithDetails.ImageUrl,
+                    UploadedAt = photoWithDetails.UploadedAt,
+                    Tags = tags.ToList(),
+                    LikesCount = likesCount,
+                    CommentsCount = commentsCount
+                };
+
+                return CreatedAtAction(nameof(GetPhoto), new { id = createdPhoto.PhotoId }, photoDto);
             }
-
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction(nameof(GetPhoto), new { id = photo.PhotoId }, await GetPhotoDto(photo.PhotoId));
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating photo for user: {UserId}", userId);
+                return StatusCode(500, "An error occurred while creating the photo");
+            }
         }
 
         /// <summary>
@@ -191,42 +387,49 @@ namespace VisaoAPI.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdatePhoto(int id, UpdatePhotoDto updatePhotoDto)
         {
-            var photo = await _context.Photos
-                .Include(p => p.PhotoTags)
-                .FirstOrDefaultAsync(p => p.PhotoId == id);
-
-            if (photo == null)
+            try
             {
-                return NotFound();
-            }
-
-            photo.Title = updatePhotoDto.Title ?? photo.Title;
-            photo.Description = updatePhotoDto.Description ?? photo.Description;
-            photo.AlbumId = updatePhotoDto.AlbumId ?? photo.AlbumId;
-
-            // Update tags
-            _context.PhotoTags.RemoveRange(photo.PhotoTags);
-            foreach (var tagName in updatePhotoDto.Tags)
-            {
-                var tag = await _context.Tags.FirstOrDefaultAsync(t => t.TagName == tagName);
-                if (tag == null)
+                var photo = await _photoRepository.GetByIdAsync(id);
+                if (photo == null)
                 {
-                    tag = new Tag { TagName = tagName };
-                    _context.Tags.Add(tag);
-                    await _context.SaveChangesAsync();
+                    return NotFound();
                 }
 
-                var photoTag = new PhotoTag
+                photo.Title = updatePhotoDto.Title ?? photo.Title;
+                photo.Description = updatePhotoDto.Description ?? photo.Description;
+                photo.AlbumId = updatePhotoDto.AlbumId ?? photo.AlbumId;
+
+                // Update the photo
+                await _photoRepository.UpdateAsync(photo);
+
+                // Update tags - remove all existing tags first
+                await _photoTagRepository.DeleteAllByPhotoIdAsync(id);
+
+                // Add new tags
+                foreach (var tagName in updatePhotoDto.Tags)
                 {
-                    PhotoId = photo.PhotoId,
-                    TagId = tag.TagId
-                };
-                _context.PhotoTags.Add(photoTag);
+                    var tag = await _tagRepository.GetByNameAsync(tagName);
+                    if (tag == null)
+                    {
+                        tag = new Tag { TagName = tagName };
+                        tag = await _tagRepository.CreateAsync(tag);
+                    }
+
+                    var photoTag = new PhotoTag
+                    {
+                        PhotoId = photo.PhotoId,
+                        TagId = tag.TagId
+                    };
+                    await _photoTagRepository.CreateAsync(photoTag);
+                }
+
+                return NoContent();
             }
-
-            await _context.SaveChangesAsync();
-
-            return NoContent();
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating photo: {PhotoId}", id);
+                return StatusCode(500, "An error occurred while updating the photo");
+            }
         }
 
         /// <summary>
@@ -235,44 +438,27 @@ namespace VisaoAPI.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeletePhoto(int id)
         {
-            var photo = await _context.Photos.FindAsync(id);
-            if (photo == null)
+            try
             {
-                return NotFound();
-            }
-
-            _context.Photos.Remove(photo);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
-        }
-
-        private async Task<PhotoDto> GetPhotoDto(int photoId)
-        {
-            return await _context.Photos
-                .Include(p => p.User)
-                .Include(p => p.Album)
-                .Include(p => p.PhotoTags)
-                .ThenInclude(pt => pt.Tag)
-                .Include(p => p.Likes)
-                .Include(p => p.Comments)
-                .Where(p => p.PhotoId == photoId)
-                .Select(p => new PhotoDto
+                var photoExists = await _photoRepository.ExistsAsync(id);
+                if (!photoExists)
                 {
-                    PhotoId = p.PhotoId,
-                    UserId = p.UserId,
-                    Username = p.User.Username,
-                    AlbumId = p.AlbumId,
-                    AlbumTitle = p.Album != null ? p.Album.Title : null,
-                    Title = p.Title,
-                    Description = p.Description,
-                    ImageUrl = p.ImageUrl,
-                    UploadedAt = p.UploadedAt,
-                    Tags = p.PhotoTags.Select(pt => pt.Tag.TagName).ToList(),
-                    LikesCount = p.Likes.Count,
-                    CommentsCount = p.Comments.Count
-                })
-                .FirstAsync();
+                    return NotFound();
+                }
+
+                var deleted = await _photoRepository.DeleteAsync(id);
+                if (!deleted)
+                {
+                    return StatusCode(500, "Failed to delete photo");
+                }
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting photo: {PhotoId}", id);
+                return StatusCode(500, "An error occurred while deleting the photo");
+            }
         }
     }
 }

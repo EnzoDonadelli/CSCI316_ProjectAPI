@@ -1,8 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using VisaoAPI.Data;
 using VisaoAPI.DTOs;
 using VisaoAPI.Models;
+using VisaoAPI.Repositories;
 
 namespace VisaoAPI.Controllers
 {
@@ -10,12 +9,20 @@ namespace VisaoAPI.Controllers
     [Route("api/[controller]")]
     public class CommentsController : ControllerBase
     {
-        private readonly PhotoSharingDbContext _context;
+        private readonly ICommentRepository _commentRepository;
+        private readonly IPhotoRepository _photoRepository;
+        private readonly IUserRepository _userRepository;
         private readonly ILogger<CommentsController> _logger;
 
-        public CommentsController(PhotoSharingDbContext context, ILogger<CommentsController> logger)
+        public CommentsController(
+            ICommentRepository commentRepository,
+            IPhotoRepository photoRepository,
+            IUserRepository userRepository,
+            ILogger<CommentsController> logger)
         {
-            _context = context;
+            _commentRepository = commentRepository;
+            _photoRepository = photoRepository;
+            _userRepository = userRepository;
             _logger = logger;
         }
 
@@ -25,28 +32,33 @@ namespace VisaoAPI.Controllers
         [HttpGet("photo/{photoId}")]
         public async Task<ActionResult<IEnumerable<CommentDto>>> GetPhotoComments(int photoId)
         {
-            var photo = await _context.Photos.FindAsync(photoId);
-            if (photo == null)
+            try
             {
-                return NotFound("Photo not found");
-            }
+                var photoExists = await _photoRepository.ExistsAsync(photoId);
+                if (!photoExists)
+                {
+                    return NotFound("Photo not found");
+                }
 
-            var comments = await _context.Comments
-                .Where(c => c.PhotoId == photoId)
-                .Include(c => c.User)
-                .Select(c => new CommentDto
+                var comments = await _commentRepository.GetByPhotoIdWithDetailsAsync(photoId);
+
+                var commentDtos = comments.Select(c => new CommentDto
                 {
                     CommentId = c.CommentId,
                     PhotoId = c.PhotoId,
                     UserId = c.UserId,
-                    Username = c.User.Username,
+                    Username = c.Username,
                     CommentText = c.CommentText,
                     CommentedAt = c.CommentedAt
-                })
-                .OrderByDescending(c => c.CommentedAt)
-                .ToListAsync();
+                }).ToList();
 
-            return Ok(comments);
+                return Ok(commentDtos);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting comments for photo: {PhotoId}", photoId);
+                return StatusCode(500, "An error occurred while retrieving comments");
+            }
         }
 
         /// <summary>
@@ -55,40 +67,50 @@ namespace VisaoAPI.Controllers
         [HttpPost("photo/{photoId}/user/{userId}")]
         public async Task<ActionResult<CommentDto>> AddComment(int photoId, int userId, CreateCommentDto createCommentDto)
         {
-            var photo = await _context.Photos.FindAsync(photoId);
-            if (photo == null)
+            try
             {
-                return NotFound("Photo not found");
+                var photoExists = await _photoRepository.ExistsAsync(photoId);
+                if (!photoExists)
+                {
+                    return NotFound("Photo not found");
+                }
+
+                var userExists = await _userRepository.ExistsAsync(userId);
+                if (!userExists)
+                {
+                    return BadRequest("User not found");
+                }
+
+                var comment = new Comment
+                {
+                    PhotoId = photoId,
+                    UserId = userId,
+                    CommentText = createCommentDto.CommentText,
+                    CommentedAt = DateTime.Now
+                };
+
+                var createdComment = await _commentRepository.CreateAsync(comment);
+
+                // Get user details for response
+                var user = await _userRepository.GetByIdAsync(userId);
+
+                var commentDto = new CommentDto
+                {
+                    CommentId = createdComment.CommentId,
+                    PhotoId = createdComment.PhotoId,
+                    UserId = createdComment.UserId,
+                    Username = user?.Username ?? "",
+                    CommentText = createdComment.CommentText,
+                    CommentedAt = createdComment.CommentedAt
+                };
+
+                return CreatedAtAction(nameof(GetComment), new { id = createdComment.CommentId }, commentDto);
             }
-
-            var user = await _context.Users.FindAsync(userId);
-            if (user == null)
+            catch (Exception ex)
             {
-                return BadRequest("User not found");
+                _logger.LogError(ex, "Error adding comment to photo: {PhotoId}", photoId);
+                return StatusCode(500, "An error occurred while adding the comment");
             }
-
-            var comment = new Comment
-            {
-                PhotoId = photoId,
-                UserId = userId,
-                CommentText = createCommentDto.CommentText,
-                CommentedAt = DateTime.Now
-            };
-
-            _context.Comments.Add(comment);
-            await _context.SaveChangesAsync();
-
-            var commentDto = new CommentDto
-            {
-                CommentId = comment.CommentId,
-                PhotoId = comment.PhotoId,
-                UserId = comment.UserId,
-                Username = user.Username,
-                CommentText = comment.CommentText,
-                CommentedAt = comment.CommentedAt
-            };
-
-            return CreatedAtAction(nameof(GetComment), new { id = comment.CommentId }, commentDto);
         }
 
         /// <summary>
@@ -97,26 +119,32 @@ namespace VisaoAPI.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<CommentDto>> GetComment(int id)
         {
-            var comment = await _context.Comments
-                .Include(c => c.User)
-                .Where(c => c.CommentId == id)
-                .Select(c => new CommentDto
-                {
-                    CommentId = c.CommentId,
-                    PhotoId = c.PhotoId,
-                    UserId = c.UserId,
-                    Username = c.User.Username,
-                    CommentText = c.CommentText,
-                    CommentedAt = c.CommentedAt
-                })
-                .FirstOrDefaultAsync();
-
-            if (comment == null)
+            try
             {
-                return NotFound();
-            }
+                var comment = await _commentRepository.GetByIdWithDetailsAsync(id);
 
-            return Ok(comment);
+                if (comment == null)
+                {
+                    return NotFound();
+                }
+
+                var commentDto = new CommentDto
+                {
+                    CommentId = comment.CommentId,
+                    PhotoId = comment.PhotoId,
+                    UserId = comment.UserId,
+                    Username = comment.Username,
+                    CommentText = comment.CommentText,
+                    CommentedAt = comment.CommentedAt
+                };
+
+                return Ok(commentDto);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting comment: {CommentId}", id);
+                return StatusCode(500, "An error occurred while retrieving the comment");
+            }
         }
 
         /// <summary>
@@ -125,16 +153,27 @@ namespace VisaoAPI.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteComment(int id)
         {
-            var comment = await _context.Comments.FindAsync(id);
-            if (comment == null)
+            try
             {
-                return NotFound();
+                var commentExists = await _commentRepository.ExistsAsync(id);
+                if (!commentExists)
+                {
+                    return NotFound();
+                }
+
+                var deleted = await _commentRepository.DeleteAsync(id);
+                if (!deleted)
+                {
+                    return StatusCode(500, "Failed to delete comment");
+                }
+
+                return NoContent();
             }
-
-            _context.Comments.Remove(comment);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting comment: {CommentId}", id);
+                return StatusCode(500, "An error occurred while deleting the comment");
+            }
         }
     }
 }

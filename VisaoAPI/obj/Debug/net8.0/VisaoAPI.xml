@@ -172,6 +172,21 @@
             Get all photos
             </summary>
         </member>
+        <member name="M:VisaoAPI.Controllers.PhotosController.GetPhotosByTag(System.String,System.Int32)">
+            <summary>
+            Get first 25 photos by tag name
+            </summary>
+        </member>
+        <member name="M:VisaoAPI.Controllers.PhotosController.GetPhotosByAlbum(System.Int32)">
+            <summary>
+            Get photos by album ID
+            </summary>
+        </member>
+        <member name="M:VisaoAPI.Controllers.PhotosController.GetUsersWhoLikedPhoto(System.Int32)">
+            <summary>
+            Get users who liked a specific photo
+            </summary>
+        </member>
         <member name="M:VisaoAPI.Controllers.PhotosController.GetPhoto(System.Int32)">
             <summary>
             Get a photo by ID

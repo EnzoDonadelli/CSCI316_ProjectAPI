@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using VisaoAPI.Data;
 using VisaoAPI.Models;
+using VisaoAPI.Repositories;
 
 namespace VisaoAPI.Controllers
 {
@@ -9,12 +8,17 @@ namespace VisaoAPI.Controllers
     [Route("api/[controller]")]
     public class FollowersController : ControllerBase
     {
-        private readonly PhotoSharingDbContext _context;
+        private readonly IFollowerRepository _followerRepository;
+        private readonly IUserRepository _userRepository;
         private readonly ILogger<FollowersController> _logger;
 
-        public FollowersController(PhotoSharingDbContext context, ILogger<FollowersController> logger)
+        public FollowersController(
+            IFollowerRepository followerRepository,
+            IUserRepository userRepository,
+            ILogger<FollowersController> logger)
         {
-            _context = context;
+            _followerRepository = followerRepository;
+            _userRepository = userRepository;
             _logger = logger;
         }
 
@@ -24,38 +28,43 @@ namespace VisaoAPI.Controllers
         [HttpPost("{followerId}/follow/{followingId}")]
         public async Task<ActionResult> FollowUser(int followerId, int followingId)
         {
-            if (followerId == followingId)
+            try
             {
-                return BadRequest("Users cannot follow themselves");
+                if (followerId == followingId)
+                {
+                    return BadRequest("Users cannot follow themselves");
+                }
+
+                var followerExists = await _userRepository.ExistsAsync(followerId);
+                var followingExists = await _userRepository.ExistsAsync(followingId);
+
+                if (!followerExists || !followingExists)
+                {
+                    return BadRequest("One or both users not found");
+                }
+
+                var existingFollow = await _followerRepository.GetByFollowerAndFolloweeAsync(followerId, followingId);
+                if (existingFollow != null)
+                {
+                    return BadRequest("Already following this user");
+                }
+
+                var follow = new Follower
+                {
+                    FollowerId = followerId,
+                    FollowingId = followingId,
+                    FollowedAt = DateTime.Now
+                };
+
+                await _followerRepository.CreateAsync(follow);
+
+                return Ok("Successfully followed user");
             }
-
-            var follower = await _context.Users.FindAsync(followerId);
-            var following = await _context.Users.FindAsync(followingId);
-
-            if (follower == null || following == null)
+            catch (Exception ex)
             {
-                return BadRequest("One or both users not found");
+                _logger.LogError(ex, "Error following user: {FollowerId} -> {FollowingId}", followerId, followingId);
+                return StatusCode(500, "An error occurred while following the user");
             }
-
-            var existingFollow = await _context.Followers
-                .FirstOrDefaultAsync(f => f.FollowerId == followerId && f.FollowingId == followingId);
-
-            if (existingFollow != null)
-            {
-                return BadRequest("Already following this user");
-            }
-
-            var follow = new Follower
-            {
-                FollowerId = followerId,
-                FollowingId = followingId,
-                FollowedAt = DateTime.Now
-            };
-
-            _context.Followers.Add(follow);
-            await _context.SaveChangesAsync();
-
-            return Ok("Successfully followed user");
         }
 
         /// <summary>
@@ -64,18 +73,21 @@ namespace VisaoAPI.Controllers
         [HttpDelete("{followerId}/unfollow/{followingId}")]
         public async Task<ActionResult> UnfollowUser(int followerId, int followingId)
         {
-            var follow = await _context.Followers
-                .FirstOrDefaultAsync(f => f.FollowerId == followerId && f.FollowingId == followingId);
-
-            if (follow == null)
+            try
             {
-                return NotFound("Follow relationship not found");
+                var deleted = await _followerRepository.DeleteByFollowerAndFolloweeAsync(followerId, followingId);
+                if (!deleted)
+                {
+                    return NotFound("Follow relationship not found");
+                }
+
+                return Ok("Successfully unfollowed user");
             }
-
-            _context.Followers.Remove(follow);
-            await _context.SaveChangesAsync();
-
-            return Ok("Successfully unfollowed user");
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error unfollowing user: {FollowerId} -> {FollowingId}", followerId, followingId);
+                return StatusCode(500, "An error occurred while unfollowing the user");
+            }
         }
 
         /// <summary>
@@ -84,20 +96,31 @@ namespace VisaoAPI.Controllers
         [HttpGet("{userId}/followers")]
         public async Task<ActionResult<IEnumerable<object>>> GetFollowers(int userId)
         {
-            var followers = await _context.Followers
-                .Where(f => f.FollowingId == userId)
-                .Include(f => f.FollowerUser)
-                .Select(f => new
+            try
+            {
+                var userExists = await _userRepository.ExistsAsync(userId);
+                if (!userExists)
                 {
-                    UserId = f.FollowerUser.UserId,
-                    Username = f.FollowerUser.Username,
-                    FullName = f.FollowerUser.FullName,
-                    ProfilePic = f.FollowerUser.ProfilePic,
-                    FollowedAt = f.FollowedAt
-                })
-                .ToListAsync();
+                    return NotFound("User not found");
+                }
 
-            return Ok(followers);
+                var followers = await _followerRepository.GetFollowersUsersAsync(userId);
+                
+                var followerDtos = followers.Select(f => new
+                {
+                    UserId = f.UserId,
+                    Username = f.Username,
+                    FullName = f.FullName,
+                    ProfilePic = f.ProfilePic
+                }).ToList();
+
+                return Ok(followerDtos);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting followers for user: {UserId}", userId);
+                return StatusCode(500, "An error occurred while retrieving followers");
+            }
         }
 
         /// <summary>
@@ -106,20 +129,31 @@ namespace VisaoAPI.Controllers
         [HttpGet("{userId}/following")]
         public async Task<ActionResult<IEnumerable<object>>> GetFollowing(int userId)
         {
-            var following = await _context.Followers
-                .Where(f => f.FollowerId == userId)
-                .Include(f => f.FollowingUser)
-                .Select(f => new
+            try
+            {
+                var userExists = await _userRepository.ExistsAsync(userId);
+                if (!userExists)
                 {
-                    UserId = f.FollowingUser.UserId,
-                    Username = f.FollowingUser.Username,
-                    FullName = f.FollowingUser.FullName,
-                    ProfilePic = f.FollowingUser.ProfilePic,
-                    FollowedAt = f.FollowedAt
-                })
-                .ToListAsync();
+                    return NotFound("User not found");
+                }
 
-            return Ok(following);
+                var following = await _followerRepository.GetFollowingUsersAsync(userId);
+                
+                var followingDtos = following.Select(f => new
+                {
+                    UserId = f.UserId,
+                    Username = f.Username,
+                    FullName = f.FullName,
+                    ProfilePic = f.ProfilePic
+                }).ToList();
+
+                return Ok(followingDtos);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting following for user: {UserId}", userId);
+                return StatusCode(500, "An error occurred while retrieving following list");
+            }
         }
 
         /// <summary>
@@ -128,10 +162,16 @@ namespace VisaoAPI.Controllers
         [HttpGet("{followerId}/follows/{followingId}")]
         public async Task<ActionResult<bool>> CheckFollowStatus(int followerId, int followingId)
         {
-            var follows = await _context.Followers
-                .AnyAsync(f => f.FollowerId == followerId && f.FollowingId == followingId);
-
-            return Ok(follows);
+            try
+            {
+                var follows = await _followerRepository.ExistsAsync(followerId, followingId);
+                return Ok(follows);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error checking follow status: {FollowerId} -> {FollowingId}", followerId, followingId);
+                return StatusCode(500, "An error occurred while checking follow status");
+            }
         }
 
         /// <summary>
@@ -140,24 +180,32 @@ namespace VisaoAPI.Controllers
         [HttpGet("{userId}/stats")]
         public async Task<ActionResult<object>> GetFollowerStats(int userId)
         {
-            var user = await _context.Users.FindAsync(userId);
-            if (user == null)
+            try
             {
-                return NotFound("User not found");
+                var user = await _userRepository.GetByIdAsync(userId);
+                if (user == null)
+                {
+                    return NotFound("User not found");
+                }
+
+                var followersCount = await _followerRepository.GetFollowersCountAsync(userId);
+                var followingCount = await _followerRepository.GetFollowingCountAsync(userId);
+
+                var stats = new
+                {
+                    UserId = userId,
+                    Username = user.Username,
+                    FollowersCount = followersCount,
+                    FollowingCount = followingCount
+                };
+
+                return Ok(stats);
             }
-
-            var followersCount = await _context.Followers.CountAsync(f => f.FollowingId == userId);
-            var followingCount = await _context.Followers.CountAsync(f => f.FollowerId == userId);
-
-            var stats = new
+            catch (Exception ex)
             {
-                UserId = userId,
-                Username = user.Username,
-                FollowersCount = followersCount,
-                FollowingCount = followingCount
-            };
-
-            return Ok(stats);
+                _logger.LogError(ex, "Error getting follower stats for user: {UserId}", userId);
+                return StatusCode(500, "An error occurred while retrieving follower statistics");
+            }
         }
     }
 }

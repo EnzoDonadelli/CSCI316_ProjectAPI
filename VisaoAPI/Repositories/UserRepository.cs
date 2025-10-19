@@ -104,6 +104,15 @@ namespace VisaoAPI.Repositories
             return rowsAffected > 0;
         }
 
+        public async Task<bool> ExistsAsync(int id)
+        {
+            const string sql = "SELECT COUNT(1) FROM Users WHERE UserId = @Id";
+
+            using var connection = new SqlConnection(_connectionString);
+            var count = await connection.QuerySingleAsync<int>(sql, new { Id = id });
+            return count > 0;
+        }
+
         public async Task<bool> UsernameExistsAsync(string username)
         {
             const string sql = "SELECT COUNT(1) FROM Users WHERE Username = @Username";

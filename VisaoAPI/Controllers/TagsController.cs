@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using VisaoAPI.Data;
 using VisaoAPI.Models;
+using VisaoAPI.Repositories;
 
 namespace VisaoAPI.Controllers
 {
@@ -9,12 +8,17 @@ namespace VisaoAPI.Controllers
     [Route("api/[controller]")]
     public class TagsController : ControllerBase
     {
-        private readonly PhotoSharingDbContext _context;
+        private readonly ITagRepository _tagRepository;
+        private readonly IPhotoTagRepository _photoTagRepository;
         private readonly ILogger<TagsController> _logger;
 
-        public TagsController(PhotoSharingDbContext context, ILogger<TagsController> logger)
+        public TagsController(
+            ITagRepository tagRepository,
+            IPhotoTagRepository photoTagRepository,
+            ILogger<TagsController> logger)
         {
-            _context = context;
+            _tagRepository = tagRepository;
+            _photoTagRepository = photoTagRepository;
             _logger = logger;
         }
 
@@ -24,8 +28,16 @@ namespace VisaoAPI.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Tag>>> GetTags()
         {
-            var tags = await _context.Tags.OrderBy(t => t.TagName).ToListAsync();
-            return Ok(tags);
+            try
+            {
+                var tags = await _tagRepository.GetAllAsync();
+                return Ok(tags);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting all tags");
+                return StatusCode(500, "An error occurred while retrieving tags");
+            }
         }
 
         /// <summary>
@@ -34,33 +46,30 @@ namespace VisaoAPI.Controllers
         [HttpGet("{tagName}/photos")]
         public async Task<ActionResult<IEnumerable<object>>> GetPhotosByTag(string tagName)
         {
-            var photos = await _context.PhotoTags
-                .Where(pt => pt.Tag.TagName == tagName)
-                .Include(pt => pt.Photo)
-                .ThenInclude(p => p.User)
-                .Include(pt => pt.Photo)
-                .ThenInclude(p => p.Album)
-                .Include(pt => pt.Photo)
-                .ThenInclude(p => p.Likes)
-                .Include(pt => pt.Photo)
-                .ThenInclude(p => p.Comments)
-                .Select(pt => new
-                {
-                    PhotoId = pt.Photo.PhotoId,
-                    UserId = pt.Photo.UserId,
-                    Username = pt.Photo.User.Username,
-                    AlbumId = pt.Photo.AlbumId,
-                    AlbumTitle = pt.Photo.Album != null ? pt.Photo.Album.Title : null,
-                    Title = pt.Photo.Title,
-                    Description = pt.Photo.Description,
-                    ImageUrl = pt.Photo.ImageUrl,
-                    UploadedAt = pt.Photo.UploadedAt,
-                    LikesCount = pt.Photo.Likes.Count,
-                    CommentsCount = pt.Photo.Comments.Count
-                })
-                .ToListAsync();
+            try
+            {
+                var photos = await _photoTagRepository.GetPhotosByTagNameAsync(tagName, 50);
 
-            return Ok(photos);
+                var photoDtos = photos.Select(p => new
+                {
+                    PhotoId = p.PhotoId,
+                    UserId = p.UserId,
+                    Username = p.Username,
+                    AlbumId = p.AlbumId,
+                    AlbumTitle = p.AlbumTitle,
+                    Title = p.Title,
+                    Description = p.Description,
+                    ImageUrl = p.ImageUrl,
+                    UploadedAt = p.UploadedAt
+                }).ToList();
+
+                return Ok(photoDtos);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting photos by tag: {TagName}", tagName);
+                return StatusCode(500, "An error occurred while retrieving photos by tag");
+            }
         }
 
         /// <summary>
@@ -69,19 +78,24 @@ namespace VisaoAPI.Controllers
         [HttpGet("popular")]
         public async Task<ActionResult<IEnumerable<object>>> GetPopularTags([FromQuery] int limit = 10)
         {
-            var popularTags = await _context.Tags
-                .Include(t => t.PhotoTags)
-                .Select(t => new
+            try
+            {
+                var popularTags = await _tagRepository.GetPopularTagsWithUsageAsync(limit);
+
+                var popularTagDtos = popularTags.Select(t => new
                 {
                     TagId = t.TagId,
                     TagName = t.TagName,
-                    UsageCount = t.PhotoTags.Count
-                })
-                .OrderByDescending(t => t.UsageCount)
-                .Take(limit)
-                .ToListAsync();
+                    UsageCount = t.UsageCount
+                }).ToList();
 
-            return Ok(popularTags);
+                return Ok(popularTagDtos);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting popular tags");
+                return StatusCode(500, "An error occurred while retrieving popular tags");
+            }
         }
     }
 }
