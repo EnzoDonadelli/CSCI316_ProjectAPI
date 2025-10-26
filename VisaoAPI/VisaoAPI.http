@@ -1,0 +1,6 @@
+@VisaoAPI_HostAddress = http://localhost:5241
+
+GET {{VisaoAPI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

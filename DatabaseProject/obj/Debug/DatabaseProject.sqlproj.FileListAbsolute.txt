@@ -1,0 +1,6 @@
+C:\Users\enzod\Documents\CSCI Final\CSCI316_ProjectAPI\DatabaseProject\bin\Debug\DatabaseProject.dacpac
+C:\Users\enzod\Documents\CSCI Final\CSCI316_ProjectAPI\DatabaseProject\bin\Debug\DatabaseProject.dll
+C:\Users\enzod\Documents\CSCI Final\CSCI316_ProjectAPI\DatabaseProject\bin\Debug\DatabaseProject.pdb
+C:\Users\enzod\Documents\CSCI Final\CSCI316_ProjectAPI\DatabaseProject\obj\Debug\DatabaseProject.sqlproj.AssemblyReference.cache
+C:\Users\enzod\Documents\CSCI Final\CSCI316_ProjectAPI\DatabaseProject\obj\Debug\DatabaseProject.dll
+C:\Users\enzod\Documents\CSCI Final\CSCI316_ProjectAPI\DatabaseProject\obj\Debug\DatabaseProject.pdb
