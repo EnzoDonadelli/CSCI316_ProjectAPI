@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("VisaoAPI")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+da5cf7bb41621e5da6ba1ef00b49f1acce1ec585")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+8bf1ee145aa7d7cb4d693928181b1e34e4284aa7")]
 [assembly: System.Reflection.AssemblyProductAttribute("VisaoAPI")]
 [assembly: System.Reflection.AssemblyTitleAttribute("VisaoAPI")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

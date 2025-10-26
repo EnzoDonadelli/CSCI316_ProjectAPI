@@ -7,6 +7,7 @@ using System.Text;
 using VisaoAPI.Repositories;
 using VisaoAPI.Services;
 using BCrypt.Net;
+using Microsoft.Extensions.FileProviders;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -145,166 +146,166 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-// Ensure database is created and seeded
-try 
-{
-    using (var scope = app.Services.CreateScope())
+    // Ensure database is created and seeded
+    try
     {
-        var context = scope.ServiceProvider.GetRequiredService<PhotoSharingDbContext>();
-        
-        // Ensure database exists (but don't drop existing data)
-        context.Database.EnsureCreated();
-        
-        // Only seed sample data if no users exist
-        if (!context.Users.Any())
+        using (var scope = app.Services.CreateScope())
         {
-            Console.WriteLine("🌱 Seeding initial sample data...");
-            
-            // Insert initial sample data with properly hashed passwords
-        var user1 = new VisaoAPI.Models.User
-        {
-            Username = "johndoe",
-            Email = "john@example.com",
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword("password123"), // Password: password123
-            FullName = "John Doe",
-            Bio = "Landscape photographer.",
-            ProfilePic = "profile1.jpg",
-            CreatedAt = DateTime.Now
-        };
+            var context = scope.ServiceProvider.GetRequiredService<PhotoSharingDbContext>();
 
-        var user2 = new VisaoAPI.Models.User
-        {
-            Username = "janesmith",
-            Email = "jane@example.com",
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword("password456"), // Password: password456
-            FullName = "Jane Smith",
-            Bio = "Wedding photographer.",
-            ProfilePic = "profile2.jpg",
-            CreatedAt = DateTime.Now
-        };
+            // Ensure database exists (but don't drop existing data)
+            context.Database.EnsureCreated();
 
-        context.Users.AddRange(user1, user2);
-        context.SaveChanges();
-
-        var album1 = new VisaoAPI.Models.Album
-        {
-            UserId = user1.UserId,
-            Title = "Nature Escapes",
-            Description = "Collection of stunning landscape shots.",
-            CreatedAt = DateTime.Now
-        };
-
-        var album2 = new VisaoAPI.Models.Album
-        {
-            UserId = user2.UserId,
-            Title = "Forever Moments",
-            Description = "Beautiful wedding memories.",
-            CreatedAt = DateTime.Now
-        };
-
-        context.Albums.AddRange(album1, album2);
-        context.SaveChanges();
-
-        var photos = new[]
-        {
-            new VisaoAPI.Models.Photo
+            // Serve images from the EXTRAS folder at repository root /EXTRAS
+            var extrasPath = Path.GetFullPath(Path.Combine(builder.Environment.ContentRootPath, "..", "EXTRAS"));
+            if (Directory.Exists(extrasPath))
             {
-                UserId = user1.UserId,
-                AlbumId = album1.AlbumId,
-                Title = "Mountain Sunrise",
-                Description = "Sunrise over the peaks.",
-                ImageUrl = "mountain_sunrise.jpg",
-                UploadedAt = DateTime.Now
-            },
-            new VisaoAPI.Models.Photo
-            {
-                UserId = user1.UserId,
-                AlbumId = album1.AlbumId,
-                Title = "Forest Stream",
-                Description = "Calm stream running through forest.",
-                ImageUrl = "forest_stream.jpg",
-                UploadedAt = DateTime.Now
-            },
-            new VisaoAPI.Models.Photo
-            {
-                UserId = user2.UserId,
-                AlbumId = album2.AlbumId,
-                Title = "Wedding Kiss",
-                Description = "Couple sharing their first kiss.",
-                ImageUrl = "wedding_kiss.jpg",
-                UploadedAt = DateTime.Now
-            },
-            new VisaoAPI.Models.Photo
-            {
-                UserId = user2.UserId,
-                AlbumId = album2.AlbumId,
-                Title = "Reception Fun",
-                Description = "Guests enjoying the reception.",
-                ImageUrl = "reception_fun.jpg",
-                UploadedAt = DateTime.Now
+                app.UseStaticFiles(new StaticFileOptions
+                {
+                    FileProvider = new PhysicalFileProvider(extrasPath),
+                    RequestPath = "/images"
+                });
             }
-        };
 
-        context.Photos.AddRange(photos);
-        context.SaveChanges();
+            // Ensure the three users exist (create them if needed)
+            var userJohn = context.Users.SingleOrDefault(u => u.Username == "johndoe");
+            if (userJohn == null)
+            {
+                userJohn = new VisaoAPI.Models.User
+                {
+                    Username = "johndoe",
+                    Email = "john@example.com",
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword("password123"),
+                    FullName = "John Doe",
+                    Bio = "Birdwatcher and landscape photographer.",
+                    ProfilePic = "BIRDS (1).jpg",
+                    CreatedAt = DateTime.Now
+                };
+                context.Users.Add(userJohn);
+                context.SaveChanges();
+            }
 
-        var tag1 = new VisaoAPI.Models.Tag { TagName = "Landscape" };
-        var tag2 = new VisaoAPI.Models.Tag { TagName = "Wedding" };
-        context.Tags.AddRange(tag1, tag2);
-        context.SaveChanges();
+            var userJane = context.Users.SingleOrDefault(u => u.Username == "janesmith");
+            if (userJane == null)
+            {
+                userJane = new VisaoAPI.Models.User
+                {
+                    Username = "janesmith",
+                    Email = "jane@example.com",
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword("password456"),
+                    FullName = "Jane Smith",
+                    Bio = "Architectural photographer.",
+                    ProfilePic = "WINDOW (1).jpg",
+                    CreatedAt = DateTime.Now
+                };
+                context.Users.Add(userJane);
+                context.SaveChanges();
+            }
 
-        var photoTags = new[]
-        {
-            new VisaoAPI.Models.PhotoTag { PhotoId = photos[0].PhotoId, TagId = tag1.TagId },
-            new VisaoAPI.Models.PhotoTag { PhotoId = photos[1].PhotoId, TagId = tag1.TagId },
-            new VisaoAPI.Models.PhotoTag { PhotoId = photos[2].PhotoId, TagId = tag2.TagId },
-            new VisaoAPI.Models.PhotoTag { PhotoId = photos[3].PhotoId, TagId = tag2.TagId }
-        };
-        context.PhotoTags.AddRange(photoTags);
-        context.SaveChanges();
+            var userEnzo = context.Users.SingleOrDefault(u => u.Username == "enzodonadelli");
+            if (userEnzo == null)
+            {
+                userEnzo = new VisaoAPI.Models.User
+                {
+                    Username = "enzodonadelli",
+                    Email = "enzo@example.com",
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword("password789"),
+                    FullName = "Enzo Donadelli",
+                    Bio = "Mountains and snow specialist.",
+                    ProfilePic = "MOUNTAINS_ (1).jpg",
+                    CreatedAt = DateTime.Now
+                };
+                context.Users.Add(userEnzo);
+                context.SaveChanges();
+            }
 
-        var followers = new[]
-        {
-            new VisaoAPI.Models.Follower { FollowerId = user1.UserId, FollowingId = user2.UserId, FollowedAt = DateTime.Now },
-            new VisaoAPI.Models.Follower { FollowerId = user2.UserId, FollowingId = user1.UserId, FollowedAt = DateTime.Now }
-        };
-        context.Followers.AddRange(followers);
-        context.SaveChanges();
+            // If we found the EXTRAS folder, import files; otherwise skip gracefully
+            if (Directory.Exists(extrasPath))
+            {
+                // Build lists from EXTRAS filenames
+                string[] birdFiles = Directory.GetFiles(extrasPath, "BIRDS*.jpg").Select(f => Path.GetFileName(f) ?? string.Empty).Where(n => !string.IsNullOrEmpty(n)).ToArray();
+                string[] mountainFiles = Directory.GetFiles(extrasPath, "MOUNTAINS_*.jpg").Select(f => Path.GetFileName(f) ?? string.Empty).Where(n => !string.IsNullOrEmpty(n)).ToArray();
+                string[] snowFiles = Directory.GetFiles(extrasPath, "SNOW*.jpg").Select(f => Path.GetFileName(f) ?? string.Empty).Where(n => !string.IsNullOrEmpty(n)).ToArray();
+                string[] windowFiles = Directory.GetFiles(extrasPath, "WINDOW*.jpg").Select(f => Path.GetFileName(f) ?? string.Empty).Where(n => !string.IsNullOrEmpty(n)).ToArray();
 
-        var likes = new[]
-        {
-            new VisaoAPI.Models.Like { UserId = user1.UserId, PhotoId = photos[2].PhotoId, LikedAt = DateTime.Now },
-            new VisaoAPI.Models.Like { UserId = user1.UserId, PhotoId = photos[3].PhotoId, LikedAt = DateTime.Now },
-            new VisaoAPI.Models.Like { UserId = user2.UserId, PhotoId = photos[0].PhotoId, LikedAt = DateTime.Now },
-            new VisaoAPI.Models.Like { UserId = user2.UserId, PhotoId = photos[1].PhotoId, LikedAt = DateTime.Now }
-        };
-        context.Likes.AddRange(likes);
-        context.SaveChanges();
+                // Ensure albums exist and add photos if they are not already present
+                Func<int, string, string, int> ensureAlbum = (userId, title, description) =>
+                {
+                    var alb = context.Albums.SingleOrDefault(a => a.UserId == userId && a.Title == title);
+                    if (alb != null) return alb.AlbumId;
+                    alb = new VisaoAPI.Models.Album { UserId = userId, Title = title, Description = description, CreatedAt = DateTime.Now };
+                    context.Albums.Add(alb);
+                    context.SaveChanges();
+                    return alb.AlbumId;
+                };
 
-        var comments = new[]
-        {
-            new VisaoAPI.Models.Comment { PhotoId = photos[2].PhotoId, UserId = user1.UserId, CommentText = "Great job! Beautiful moment.", CommentedAt = DateTime.Now },
-            new VisaoAPI.Models.Comment { PhotoId = photos[3].PhotoId, UserId = user1.UserId, CommentText = "Good view! Love the lighting.", CommentedAt = DateTime.Now },
-            new VisaoAPI.Models.Comment { PhotoId = photos[0].PhotoId, UserId = user2.UserId, CommentText = "Amazing capture! Great job!", CommentedAt = DateTime.Now },
-            new VisaoAPI.Models.Comment { PhotoId = photos[1].PhotoId, UserId = user2.UserId, CommentText = "Beautiful scenery!", CommentedAt = DateTime.Now }
-        };
-        context.Comments.AddRange(comments);
-        context.SaveChanges();
+                var albumJohnId = ensureAlbum(userJohn.UserId, "Birds", "Bird photos from John's collection.");
+                var albumEnzoId = ensureAlbum(userEnzo.UserId, "Snow & Mountains", "Enzo's mountain and snow photos.");
+                var albumJaneId = ensureAlbum(userJane.UserId, "Window", "Window series by Jane.");
 
-            Console.WriteLine("✅ Initial sample data created successfully!");
-            Console.WriteLine($"✅ Created {context.Users.Count()} users");
-            Console.WriteLine($"✅ Created {context.Photos.Count()} photos");
-            Console.WriteLine($"✅ Created {context.Albums.Count()} albums");
-        }
-        else
-        {
-            Console.WriteLine($"📊 Database already contains {context.Users.Count()} users - skipping sample data");
+                // Add photos if missing
+                void AddPhotosForFiles(string[] files, int userId, int albumId)
+                {
+                    foreach (var f in files)
+                    {
+                        if (context.Photos.Any(p => p.ImageUrl == f)) continue;
+                        var photo = new VisaoAPI.Models.Photo
+                        {
+                            UserId = userId,
+                            AlbumId = albumId,
+                            Title = Path.GetFileNameWithoutExtension(f),
+                            Description = $"Imported photo {f}",
+                            ImageUrl = f,
+                            UploadedAt = DateTime.Now
+                        };
+                        context.Photos.Add(photo);
+                    }
+                    context.SaveChanges();
+                }
+
+                AddPhotosForFiles(birdFiles, userJohn.UserId, albumJohnId);
+                AddPhotosForFiles(mountainFiles.Concat(snowFiles).ToArray(), userEnzo.UserId, albumEnzoId);
+                AddPhotosForFiles(windowFiles, userJane.UserId, albumJaneId);
+
+                // Create tags from filenames (cleaned) and link to photos if not linked
+                var allPhotos = context.Photos.ToList();
+                var createdTags = context.Tags.ToDictionary(t => t.TagName, StringComparer.OrdinalIgnoreCase);
+
+                foreach (var p in allPhotos)
+                {
+                    if (string.IsNullOrEmpty(p.ImageUrl)) continue;
+                    var raw = Path.GetFileNameWithoutExtension(p.ImageUrl);
+                    var cleaned = System.Text.RegularExpressions.Regex.Replace(raw ?? string.Empty, "\\s*\\(.*\\)", "");
+                    cleaned = cleaned.Replace('_', ' ').Trim();
+                    var tagName = cleaned.Split(' ')[0];
+                    if (string.IsNullOrWhiteSpace(tagName)) continue;
+
+                    if (!createdTags.TryGetValue(tagName, out var tag))
+                    {
+                        tag = new VisaoAPI.Models.Tag { TagName = tagName };
+                        context.Tags.Add(tag);
+                        context.SaveChanges();
+                        createdTags[tag.TagName] = tag;
+                    }
+
+                    if (!context.PhotoTags.Any(pt => pt.PhotoId == p.PhotoId && pt.TagId == tag.TagId))
+                    {
+                        context.PhotoTags.Add(new VisaoAPI.Models.PhotoTag { PhotoId = p.PhotoId, TagId = tag.TagId });
+                    }
+                }
+                context.SaveChanges();
+
+                Console.WriteLine("✅ EXTRAS images imported and linked to database (users/albums/tags)");
+            }
+            else
+            {
+                Console.WriteLine($"⚠️ EXTRAS folder not found at '{extrasPath}' - skipping image import");
+            }
         }
     }
-}
-catch (Exception ex)
-{
-    Console.WriteLine($"❌ Error creating sample data: {ex.Message}");
-}
+    catch (Exception ex)
+    {
+        Console.WriteLine($"❌ Error creating sample data: {ex.Message}");
+    }
 
 app.Run();
