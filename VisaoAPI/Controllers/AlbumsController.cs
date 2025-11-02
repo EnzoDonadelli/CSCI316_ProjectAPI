@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using VisaoAPI.DTOs;
 using VisaoAPI.Models;
 using VisaoAPI.Repositories;
@@ -36,7 +37,7 @@ namespace VisaoAPI.Controllers
                 AlbumId = a.AlbumId,
                 UserId = a.UserId,
                 Username = a.Username,
-                Title = a.Title,
+                Title = a.Title ?? string.Empty,
                 Description = a.Description,
                 CreatedAt = a.CreatedAt,
                 PhotosCount = a.PhotosCount
@@ -63,7 +64,7 @@ namespace VisaoAPI.Controllers
                 AlbumId = album.AlbumId,
                 UserId = album.UserId,
                 Username = album.Username,
-                Title = album.Title,
+                Title = album.Title ?? string.Empty,
                 Description = album.Description,
                 CreatedAt = album.CreatedAt,
                 PhotosCount = album.PhotosCount
@@ -85,7 +86,7 @@ namespace VisaoAPI.Controllers
                 AlbumId = a.AlbumId,
                 UserId = a.UserId,
                 Username = a.Username,
-                Title = a.Title,
+                Title = a.Title ?? string.Empty,
                 Description = a.Description,
                 CreatedAt = a.CreatedAt,
                 PhotosCount = a.PhotosCount
@@ -133,6 +134,7 @@ namespace VisaoAPI.Controllers
         /// <summary>
         /// Update an album
         /// </summary>
+        [Authorize]
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateAlbum(int id, UpdateAlbumDto updateAlbumDto)
         {
@@ -140,6 +142,17 @@ namespace VisaoAPI.Controllers
             if (album == null)
             {
                 return NotFound();
+            }
+
+            // Ensure the authenticated user owns this album
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var authUserId))
+            {
+                return Unauthorized("Invalid user token");
+            }
+            if (album.UserId != authUserId)
+            {
+                return Forbid();
             }
 
             album.Title = updateAlbumDto.Title ?? album.Title;
@@ -153,6 +166,7 @@ namespace VisaoAPI.Controllers
         /// <summary>
         /// Delete an album
         /// </summary>
+        [Authorize]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteAlbum(int id)
         {
@@ -160,6 +174,17 @@ namespace VisaoAPI.Controllers
             if (albumExists == null)
             {
                 return NotFound();
+            }
+
+            // Ensure the authenticated user owns this album
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var authUserId))
+            {
+                return Unauthorized("Invalid user token");
+            }
+            if (albumExists.UserId != authUserId)
+            {
+                return Forbid();
             }
 
             await _albumRepository.DeleteAsync(id);
@@ -191,6 +216,7 @@ namespace VisaoAPI.Controllers
                 Title = p.Title,
                 Description = p.Description,
                 ImageUrl = p.ImageUrl,
+                FullImageUrl = string.IsNullOrEmpty(p.ImageUrl) ? null : (p.ImageUrl.StartsWith("http") || p.ImageUrl.StartsWith("data:") ? p.ImageUrl : $"{Request.Scheme}://{Request.Host}/images/{Uri.EscapeDataString(p.ImageUrl)}"),
                 UploadedAt = p.UploadedAt,
                 Tags = new List<string>(), // Will need to be populated separately
                 LikesCount = 0, // Will need to be populated separately

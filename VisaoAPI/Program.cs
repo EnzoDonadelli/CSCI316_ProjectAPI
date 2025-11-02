@@ -156,15 +156,40 @@ app.MapControllers();
             // Ensure database exists (but don't drop existing data)
             context.Database.EnsureCreated();
 
-            // Serve images from the EXTRAS folder at repository root /EXTRAS
+            // Serve images directly from the repository EXTRAS folder (preferred)
+            // Fallback: if EXTRAS doesn't exist, serve any files in wwwroot/images
             var extrasPath = Path.GetFullPath(Path.Combine(builder.Environment.ContentRootPath, "..", "EXTRAS"));
-            if (Directory.Exists(extrasPath))
+            var imagesDir = Path.Combine(builder.Environment.ContentRootPath, "wwwroot", "images");
+            try
             {
-                app.UseStaticFiles(new StaticFileOptions
+                if (Directory.Exists(extrasPath))
                 {
-                    FileProvider = new PhysicalFileProvider(extrasPath),
-                    RequestPath = "/images"
-                });
+                    // Serve EXTRAS directly at /images so filenames map to /images/{filename}
+                    app.UseStaticFiles(new StaticFileOptions
+                    {
+                        FileProvider = new PhysicalFileProvider(extrasPath),
+                        RequestPath = "/images"
+                    });
+                    Console.WriteLine($"✅ Serving images directly from EXTRAS at '{extrasPath}'");
+                }
+                else
+                {
+                    // Ensure a local images folder exists under wwwroot and serve it
+                    Directory.CreateDirectory(imagesDir);
+                    if (Directory.Exists(imagesDir))
+                    {
+                        app.UseStaticFiles(new StaticFileOptions
+                        {
+                            FileProvider = new PhysicalFileProvider(imagesDir),
+                            RequestPath = "/images"
+                        });
+                        Console.WriteLine($"⚠️ EXTRAS not found; serving images from '{imagesDir}' instead");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"⚠️ Could not configure images static files: {ex.Message}");
             }
 
             // Ensure the three users exist (create them if needed)

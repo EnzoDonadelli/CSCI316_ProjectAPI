@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react'
+import { useAppSelector } from '../store/hooks'
+import { useNavigate } from 'react-router-dom'
 import { Dialog, DialogContent, DialogTitle, Typography, Box, Chip, Stack, Divider, IconButton, Button, TextField, List, ListItem } from '@mui/material'
 import CloseIcon from '@mui/icons-material/Close'
 import api from '../api/axios'
@@ -30,6 +32,10 @@ export default function PhotoDetailModal({ open, onClose, photoId, initial }: { 
   const [likeLoading, setLikeLoading] = useState(false)
   const [newComment, setNewComment] = useState('')
 
+  const navigate = useNavigate()
+
+  const currentUser = useAppSelector(s => (s as any).user?.user)
+
   useEffect(() => {
     if (!open || !photoId) return
 
@@ -55,10 +61,14 @@ export default function PhotoDetailModal({ open, onClose, photoId, initial }: { 
             setComments([])
           }
         }
-        // Check whether demo user (id=1) liked this photo
+        // Check whether current user liked this photo
         try {
-          const resp = await api.get(`/api/likes/photo/${photoId}/user/1/check`)
-          if (resp && resp.data !== undefined) setLiked(Boolean(resp.data))
+          if (currentUser?.id) {
+            const resp = await api.get(`/api/likes/photo/${photoId}/user/${currentUser.id}/check`)
+            if (resp && resp.data !== undefined) setLiked(Boolean(resp.data))
+          } else {
+            setLiked(false)
+          }
         } catch (e) {
           // ignore
         }
@@ -115,16 +125,21 @@ export default function PhotoDetailModal({ open, onClose, photoId, initial }: { 
                 if (!photoId) return
                 setLikeLoading(true)
                 try {
-                  if (!liked) {
-                    const r = await api.post(`/api/likes/photo/${photoId}/user/1`)
-                    // optimistic: increment
-                    setPhoto(prev => prev ? { ...prev, likesCount: (prev.likesCount ?? 0) + 1 } : prev)
-                    setLiked(true)
-                  } else {
-                    await api.delete(`/api/likes/photo/${photoId}/user/1`)
-                    setPhoto(prev => prev ? { ...prev, likesCount: Math.max(0, (prev.likesCount ?? 1) - 1) } : prev)
-                    setLiked(false)
-                  }
+                    if (!currentUser?.id) {
+                      // not logged in, send to login
+                      navigate('/login')
+                      return
+                    }
+                    if (!liked) {
+                      await api.post(`/api/likes/photo/${photoId}/user/${currentUser.id}`)
+                      // optimistic: increment
+                      setPhoto(prev => prev ? { ...prev, likesCount: (prev.likesCount ?? 0) + 1 } : prev)
+                      setLiked(true)
+                    } else {
+                      await api.delete(`/api/likes/photo/${photoId}/user/${currentUser.id}`)
+                      setPhoto(prev => prev ? { ...prev, likesCount: Math.max(0, (prev.likesCount ?? 1) - 1) } : prev)
+                      setLiked(false)
+                    }
                 } catch (e) {
                   console.error('like failed', e)
                 } finally { setLikeLoading(false) }
@@ -151,9 +166,10 @@ export default function PhotoDetailModal({ open, onClose, photoId, initial }: { 
               <TextField placeholder="Add a comment" fullWidth size="small" value={newComment} onChange={e => setNewComment(e.target.value)} />
               <Button variant="contained" onClick={async () => {
                 if (!photoId || !newComment.trim()) return
+                if (!currentUser?.id) { navigate('/login'); return }
                 try {
                   const payload = { commentText: newComment.trim() }
-                  const res = await api.post(`/api/comments/photo/${photoId}/user/1`, payload)
+                  const res = await api.post(`/api/comments/photo/${photoId}/user/${currentUser.id}`, payload)
                   const created = res.data
                   // normalize response shape
                   const createdObj = Array.isArray(created) ? created[0] : (created.value ?? created)

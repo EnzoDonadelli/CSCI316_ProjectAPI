@@ -19,6 +19,26 @@ namespace VisaoAPI.Controllers
             _logger = logger;
         }
 
+        private string? BuildFullImageUrl(string? imageUrl)
+        {
+            if (string.IsNullOrEmpty(imageUrl)) return null;
+            if (imageUrl.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || imageUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase) || imageUrl.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
+            {
+                return imageUrl;
+            }
+            try
+            {
+                var encoded = Uri.EscapeDataString(imageUrl);
+                var scheme = Request?.Scheme ?? "http";
+                var host = Request?.Host.Value ?? "localhost";
+                return $"{scheme}://{host}/images/{encoded}";
+            }
+            catch
+            {
+                return imageUrl;
+            }
+        }
+
         /// <summary>
         /// Get current user's photos only (requires authentication)
         /// </summary>
@@ -48,6 +68,7 @@ namespace VisaoAPI.Controllers
                     Title = p.Title,
                     Description = p.Description,
                     ImageUrl = p.ImageUrl,
+                    FullImageUrl = BuildFullImageUrl(p.ImageUrl),
                     UploadedAt = p.UploadedAt
                 }).ToList();
 

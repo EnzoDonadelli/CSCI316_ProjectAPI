@@ -143,3 +143,4 @@ C:\Users\enzod\Documents\CSCI Final\CSCI316_ProjectAPI\VisaoAPI\bin\Debug\net8.0
 C:\Users\enzod\Documents\CSCI Final\CSCI316_ProjectAPI\VisaoAPI\bin\Debug\net8.0\Microsoft.AspNetCore.Authentication.JwtBearer.dll
 C:\Users\enzod\Documents\CSCI Final\CSCI316_ProjectAPI\VisaoAPI\bin\Debug\net8.0\Microsoft.AspNetCore.Identity.EntityFrameworkCore.dll
 C:\Users\enzod\Documents\CSCI Final\CSCI316_ProjectAPI\VisaoAPI\bin\Debug\net8.0\Dapper.dll
+C:\Users\enzod\Documents\CSCI Final\CSCI316_ProjectAPI\VisaoAPI\bin\Debug\net8.0\VisaoAPI.staticwebassets.runtime.json

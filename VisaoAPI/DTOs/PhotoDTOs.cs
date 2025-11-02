@@ -10,6 +10,8 @@ namespace VisaoAPI.DTOs
         public string? Title { get; set; }
         public string? Description { get; set; }
         public string ImageUrl { get; set; } = string.Empty;
+        // Absolute URL the client can use directly (either an external URL, data: URL or /images/ path)
+        public string? FullImageUrl { get; set; }
         public DateTime UploadedAt { get; set; }
         public List<string> Tags { get; set; } = new();
         public int LikesCount { get; set; }

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using VisaoAPI.DTOs;
 using VisaoAPI.Models;
 using VisaoAPI.Repositories;
@@ -39,6 +40,30 @@ namespace VisaoAPI.Controllers
             _logger = logger;
         }
 
+        // Helper to build an absolute URL for an image. If the stored ImageUrl is already an absolute URL or data URL,
+        // return it unchanged. Otherwise build an /images/{encoded-filename} absolute URL using the current request.
+        private string? BuildFullImageUrl(string? imageUrl)
+        {
+            if (string.IsNullOrEmpty(imageUrl)) return null;
+            if (imageUrl.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || imageUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase) || imageUrl.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
+            {
+                return imageUrl;
+            }
+
+            // Build absolute URL to /images/{encoded}
+            try
+            {
+                var encoded = Uri.EscapeDataString(imageUrl);
+                var scheme = Request?.Scheme ?? "http";
+                var host = Request?.Host.Value ?? "localhost";
+                return $"{scheme}://{host}/images/{encoded}";
+            }
+            catch
+            {
+                return imageUrl;
+            }
+        }
+
         /// <summary>
         /// Get all photos
         /// </summary>
@@ -66,6 +91,7 @@ namespace VisaoAPI.Controllers
                         Title = photo.Title,
                         Description = photo.Description,
                         ImageUrl = photo.ImageUrl,
+                        FullImageUrl = BuildFullImageUrl(photo.ImageUrl),
                         UploadedAt = photo.UploadedAt,
                         Tags = tags.ToList(),
                         LikesCount = likesCount,
@@ -109,6 +135,7 @@ namespace VisaoAPI.Controllers
                         Title = photo.Title,
                         Description = photo.Description,
                         ImageUrl = photo.ImageUrl,
+                        FullImageUrl = BuildFullImageUrl(photo.ImageUrl),
                         UploadedAt = photo.UploadedAt,
                         Tags = tags.ToList(),
                         LikesCount = likesCount,
@@ -152,6 +179,7 @@ namespace VisaoAPI.Controllers
                         Title = photo.Title,
                         Description = photo.Description,
                         ImageUrl = photo.ImageUrl,
+                        FullImageUrl = BuildFullImageUrl(photo.ImageUrl),
                         UploadedAt = photo.UploadedAt,
                         Tags = tags.ToList(),
                         LikesCount = likesCount,
@@ -233,6 +261,7 @@ namespace VisaoAPI.Controllers
                     Title = photo.Title,
                     Description = photo.Description,
                     ImageUrl = photo.ImageUrl,
+                    FullImageUrl = BuildFullImageUrl(photo.ImageUrl),
                     UploadedAt = photo.UploadedAt,
                     Tags = tags.ToList(),
                     LikesCount = likesCount,
@@ -275,6 +304,7 @@ namespace VisaoAPI.Controllers
                         Title = photo.Title,
                         Description = photo.Description,
                         ImageUrl = photo.ImageUrl,
+                        FullImageUrl = BuildFullImageUrl(photo.ImageUrl),
                         UploadedAt = photo.UploadedAt,
                         Tags = tags.ToList(),
                         LikesCount = likesCount,
@@ -366,6 +396,7 @@ namespace VisaoAPI.Controllers
                     Title = photoWithDetails.Title,
                     Description = photoWithDetails.Description,
                     ImageUrl = photoWithDetails.ImageUrl,
+                    FullImageUrl = BuildFullImageUrl(photoWithDetails.ImageUrl),
                     UploadedAt = photoWithDetails.UploadedAt,
                     Tags = tags.ToList(),
                     LikesCount = likesCount,
@@ -384,6 +415,7 @@ namespace VisaoAPI.Controllers
         /// <summary>
         /// Update a photo
         /// </summary>
+        [Authorize]
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdatePhoto(int id, UpdatePhotoDto updatePhotoDto)
         {
@@ -393,6 +425,17 @@ namespace VisaoAPI.Controllers
                 if (photo == null)
                 {
                     return NotFound();
+                }
+
+                // Ensure the authenticated user owns this photo
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var authUserId))
+                {
+                    return Unauthorized("Invalid user token");
+                }
+                if (photo.UserId != authUserId)
+                {
+                    return Forbid();
                 }
 
                 photo.Title = updatePhotoDto.Title ?? photo.Title;
@@ -435,17 +478,28 @@ namespace VisaoAPI.Controllers
         /// <summary>
         /// Delete a photo
         /// </summary>
+        [Authorize]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeletePhoto(int id)
         {
             try
             {
-                var photoExists = await _photoRepository.ExistsAsync(id);
-                if (!photoExists)
+                var photo = await _photoRepository.GetByIdAsync(id);
+                if (photo == null)
                 {
                     return NotFound();
                 }
 
+                // Ensure the authenticated user owns this photo
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var authUserId))
+                {
+                    return Unauthorized("Invalid user token");
+                }
+                if (photo.UserId != authUserId)
+                {
+                    return Forbid();
+                }
                 var deleted = await _photoRepository.DeleteAsync(id);
                 if (!deleted)
                 {

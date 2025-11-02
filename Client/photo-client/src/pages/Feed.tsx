@@ -71,7 +71,18 @@ export default function Feed() {
       <Grid container spacing={2}>
         {localPhotos.map(p => (
           <Grid item xs={12} sm={6} md={4} lg={3} key={p.photoId}>
-            <PhotoCard photo={p} onClick={() => { setSelectedId(p.photoId) }} />
+            <PhotoCard
+              photo={p}
+              onClick={() => { setSelectedId(p.photoId) }}
+              onDeleted={(id) => {
+                setLocalPhotos(prev => prev.filter(ph => ph.photoId !== id))
+              }}
+              onUpdated={async () => {
+                // Refresh current view (respect search if active)
+                if (searchTerm.trim()) await onSearch()
+                else dispatch(fetchPhotos())
+              }}
+            />
           </Grid>
         ))}
       </Grid>

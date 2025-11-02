@@ -60,6 +60,8 @@ namespace VisaoAPI.Controllers
                     Title = p.Title,
                     Description = p.Description,
                     ImageUrl = p.ImageUrl,
+                    // Build a FullImageUrl like other controllers so the client can prefer it
+                    FullImageUrl = string.IsNullOrEmpty(p.ImageUrl) ? null : (p.ImageUrl.StartsWith("http") || p.ImageUrl.StartsWith("data:") ? p.ImageUrl : $"{Request.Scheme}://{Request.Host}/images/{Uri.EscapeDataString(p.ImageUrl)}"),
                     UploadedAt = p.UploadedAt
                 }).ToList();
 
