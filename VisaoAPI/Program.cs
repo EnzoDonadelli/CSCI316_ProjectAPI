@@ -164,13 +164,18 @@ app.MapControllers();
             {
                 if (Directory.Exists(extrasPath))
                 {
-                    // Serve EXTRAS directly at /images so filenames map to /images/{filename}
+                    // Serve EXTRAS at /extras and also at /images for backwards-compatibility
+                    app.UseStaticFiles(new StaticFileOptions
+                    {
+                        FileProvider = new PhysicalFileProvider(extrasPath),
+                        RequestPath = "/extras"
+                    });
                     app.UseStaticFiles(new StaticFileOptions
                     {
                         FileProvider = new PhysicalFileProvider(extrasPath),
                         RequestPath = "/images"
                     });
-                    Console.WriteLine($"✅ Serving images directly from EXTRAS at '{extrasPath}'");
+                    Console.WriteLine($"✅ Serving EXTRAS at /extras and /images from '{extrasPath}'");
                 }
                 else
                 {
