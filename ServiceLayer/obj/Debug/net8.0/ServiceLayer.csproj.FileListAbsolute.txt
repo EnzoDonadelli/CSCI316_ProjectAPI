@@ -1,0 +1,12 @@
+C:\Users\enzod\Documents\CSCI Final\CSCI316_ProjectAPI\ServiceLayer\bin\Debug\net8.0\ServiceLayer.deps.json
+C:\Users\enzod\Documents\CSCI Final\CSCI316_ProjectAPI\ServiceLayer\bin\Debug\net8.0\ServiceLayer.dll
+C:\Users\enzod\Documents\CSCI Final\CSCI316_ProjectAPI\ServiceLayer\bin\Debug\net8.0\ServiceLayer.pdb
+C:\Users\enzod\Documents\CSCI Final\CSCI316_ProjectAPI\ServiceLayer\obj\Debug\net8.0\ServiceLayer.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\enzod\Documents\CSCI Final\CSCI316_ProjectAPI\ServiceLayer\obj\Debug\net8.0\ServiceLayer.AssemblyInfoInputs.cache
+C:\Users\enzod\Documents\CSCI Final\CSCI316_ProjectAPI\ServiceLayer\obj\Debug\net8.0\ServiceLayer.AssemblyInfo.cs
+C:\Users\enzod\Documents\CSCI Final\CSCI316_ProjectAPI\ServiceLayer\obj\Debug\net8.0\ServiceLayer.csproj.CoreCompileInputs.cache
+C:\Users\enzod\Documents\CSCI Final\CSCI316_ProjectAPI\ServiceLayer\obj\Debug\net8.0\ServiceLayer.sourcelink.json
+C:\Users\enzod\Documents\CSCI Final\CSCI316_ProjectAPI\ServiceLayer\obj\Debug\net8.0\ServiceLayer.dll
+C:\Users\enzod\Documents\CSCI Final\CSCI316_ProjectAPI\ServiceLayer\obj\Debug\net8.0\refint\ServiceLayer.dll
+C:\Users\enzod\Documents\CSCI Final\CSCI316_ProjectAPI\ServiceLayer\obj\Debug\net8.0\ServiceLayer.pdb
+C:\Users\enzod\Documents\CSCI Final\CSCI316_ProjectAPI\ServiceLayer\obj\Debug\net8.0\ref\ServiceLayer.dll
