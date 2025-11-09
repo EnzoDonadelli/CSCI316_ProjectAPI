@@ -1,0 +1,61 @@
+/* New brand design */
+html, body, #root { height:100%; }
+body { font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; margin:0; background: var(--brand-bg); color: var(--brand-text); }
+
+:root {
+  --brand-bg: #f3ede6; /* light beige background */
+  --brand-bg-alt: #ffffff; /* white cards */
+  --brand-accent: #5a3a0d; /* dark brown for headings/nav */
+  --brand-accent-alt: #7a5015; /* hover shade */
+  --brand-text: #2b1d12; /* primary text */
+  --brand-muted: #705e4d; /* muted captions */
+  --brand-border: #e2d8cf; /* subtle card borders */
+  --hero-height: 220px;
+}
+
+a { color: var(--brand-accent); text-decoration:none; }
+a:hover { text-decoration:underline; }
+
+/* Hero deck */
+/* Hero simplified to stacked single focus image with subtle layered frames */
+.brand-hero-wrapper { position:relative; padding:30px 0 26px; text-align:center; }
+.brand-hero-title { font-size:1.05rem; font-weight:700; letter-spacing:0.4px; color: var(--brand-accent); margin:0 0 14px; }
+.brand-hero-sub { font-size:0.85rem; font-weight:600; color: var(--brand-accent); margin:12px 0 4px; }
+.brand-hero-stack { width:300px; margin:0 auto; position:relative; height: var(--hero-height); }
+.hero-main { position:absolute; inset:0; border-radius:12px; overflow:hidden; box-shadow:0 8px 24px -10px rgba(0,0,0,.35); }
+.hero-layer { position:absolute; top:10px; left:16px; width:100%; height:100%; border-radius:12px; background:var(--brand-muted); opacity:0.18; transform:translateX(28px); }
+.hero-layer2 { position:absolute; top:18px; left:28px; width:100%; height:100%; border-radius:12px; background:var(--brand-muted); opacity:0.12; transform:translateX(52px); }
+.hero-main img { width:100%; height:100%; object-fit:cover; display:block; }
+
+/* Feature sections */
+.brand-section { background: var(--brand-bg-alt); border:1px solid var(--brand-border); border-radius:12px; padding:34px 30px; margin:15px auto 30px; max-width:760px; box-shadow:0 4px 18px -6px rgba(0,0,0,0.15); }
+.brand-section-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:40px 32px; }
+.brand-feature { display:flex; flex-direction:column; gap:12px; }
+.brand-feature img { width:120px; height:120px; object-fit:cover; border-radius:8px; box-shadow:0 4px 12px -4px rgba(0,0,0,0.25); }
+
+/* CTA */
+.brand-cta { background: var(--brand-bg-alt); border:1px solid var(--brand-border); border-radius:12px; padding:30px 26px; max-width:600px; margin:30px auto 50px; text-align:center; box-shadow:0 4px 16px -6px rgba(0,0,0,0.18); }
+.brand-cta h2 { font-size:1rem; margin-bottom:10px; color:var(--brand-accent); }
+.brand-register-btn { background: var(--brand-accent); color:#ffffff; font-weight:600; padding:8px 24px; border-radius:6px; border:none; cursor:pointer; font-size:0.8rem; letter-spacing:0.4px; box-shadow:0 3px 12px -4px rgba(0,0,0,0.3); transition:background .25s; }
+.brand-register-btn:hover { background: var(--brand-accent-alt); }
+
+/* Footer */
+.brand-footer { background: #5a3a0d; color:#fff; margin-top:40px; padding:30px 0 36px; font-size:0.65rem; }
+.brand-footer-inner { max-width:900px; margin:0 auto; display:flex; justify-content:space-between; align-items:flex-start; gap:30px; }
+.brand-footer-logo { font-size:1rem; font-weight:700; letter-spacing:0.8px; }
+.footer-cols { display:flex; gap:40px; }
+.footer-col-title { font-weight:600; margin-bottom:6px; font-size:0.6rem; text-transform:uppercase; letter-spacing:0.6px; color:#e9d9c8; }
+.footer-col a { display:block; font-size:0.6rem; padding:2px 0; color:#ffffff; opacity:0.85; }
+.footer-col a:hover { opacity:1; }
+
+/* Cards & photo overlay retained but tuned */
+.photo-overlay { transition: background 220ms ease, opacity 220ms ease; }
+.photo-overlay::before { content:''; position:absolute; inset:0; background:linear-gradient(180deg, rgba(0,0,0,0) 40%, rgba(0,0,0,0.6) 100%); opacity:0; transition:opacity 220ms ease; }
+.photo-overlay:hover::before, .photo-overlay:focus::before { opacity:1; }
+
+@media (max-width: 640px){
+  .brand-hero-stack { width:240px; }
+  .brand-feature img { width:100px; height:100px; }
+  .brand-section { padding:26px 22px; }
+}
+
