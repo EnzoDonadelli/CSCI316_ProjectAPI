@@ -1,0 +1,278 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>VisaoAPI</name>
+    </assembly>
+    <members>
+        <member name="M:VisaoAPI.Controllers.AlbumsController.GetAlbums">
+            <summary>
+            Get all albums
+            </summary>
+        </member>
+        <member name="M:VisaoAPI.Controllers.AlbumsController.GetAlbum(System.Int32)">
+            <summary>
+            Get an album by ID
+            </summary>
+        </member>
+        <member name="M:VisaoAPI.Controllers.AlbumsController.GetAlbumsByUser(System.Int32)">
+            <summary>
+            Get albums by user ID
+            </summary>
+        </member>
+        <member name="M:VisaoAPI.Controllers.AlbumsController.CreateAlbum(System.Int32,VisaoAPI.DTOs.CreateAlbumDto)">
+            <summary>
+            Create a new album
+            </summary>
+        </member>
+        <member name="M:VisaoAPI.Controllers.AlbumsController.UpdateAlbum(System.Int32,VisaoAPI.DTOs.UpdateAlbumDto)">
+            <summary>
+            Update an album
+            </summary>
+        </member>
+        <member name="M:VisaoAPI.Controllers.AlbumsController.DeleteAlbum(System.Int32)">
+            <summary>
+            Delete an album
+            </summary>
+        </member>
+        <member name="M:VisaoAPI.Controllers.AlbumsController.GetAlbumPhotos(System.Int32)">
+            <summary>
+            Get photos in an album
+            </summary>
+        </member>
+        <member name="M:VisaoAPI.Controllers.AuthController.Register(VisaoAPI.DTOs.RegisterDto)">
+            <summary>
+            Register a new user account
+            </summary>
+            <param name="registerDto">User registration data</param>
+            <returns>Authentication result with JWT token</returns>
+        </member>
+        <member name="M:VisaoAPI.Controllers.AuthController.Login(VisaoAPI.DTOs.LoginDto)">
+            <summary>
+            Login with username/email and password
+            </summary>
+            <param name="loginDto">Login credentials</param>
+            <returns>Authentication result with JWT token</returns>
+        </member>
+        <member name="M:VisaoAPI.Controllers.AuthController.GetProfile">
+            <summary>
+            Get current user profile (requires authentication)
+            </summary>
+            <returns>Current user information</returns>
+        </member>
+        <member name="M:VisaoAPI.Controllers.AuthController.ChangePassword(VisaoAPI.DTOs.ChangePasswordDto)">
+            <summary>
+            Change user password (requires authentication)
+            </summary>
+            <param name="changePasswordDto">Password change data</param>
+            <returns>Result of password change operation</returns>
+        </member>
+        <member name="M:VisaoAPI.Controllers.AuthController.ValidateToken">
+            <summary>
+            Validate JWT token (useful for frontend token validation)
+            </summary>
+            <returns>Token validation result</returns>
+        </member>
+        <member name="M:VisaoAPI.Controllers.AuthController.UpdateProfile(VisaoAPI.DTOs.UpdateUserDto)">
+            <summary>
+            Update current authenticated user's profile (full name, bio, profile picture)
+            </summary>
+        </member>
+        <member name="M:VisaoAPI.Controllers.CommentsController.GetPhotoComments(System.Int32)">
+            <summary>
+            Get comments for a photo
+            </summary>
+        </member>
+        <member name="M:VisaoAPI.Controllers.CommentsController.AddComment(System.Int32,System.Int32,VisaoAPI.DTOs.CreateCommentDto)">
+            <summary>
+            Add a comment to a photo
+            </summary>
+        </member>
+        <member name="M:VisaoAPI.Controllers.CommentsController.GetComment(System.Int32)">
+            <summary>
+            Get a comment by ID
+            </summary>
+        </member>
+        <member name="M:VisaoAPI.Controllers.CommentsController.DeleteComment(System.Int32)">
+            <summary>
+            Delete a comment
+            </summary>
+        </member>
+        <member name="M:VisaoAPI.Controllers.FollowersController.FollowUser(System.Int32,System.Int32)">
+            <summary>
+            Follow a user
+            </summary>
+        </member>
+        <member name="M:VisaoAPI.Controllers.FollowersController.UnfollowUser(System.Int32,System.Int32)">
+            <summary>
+            Unfollow a user
+            </summary>
+        </member>
+        <member name="M:VisaoAPI.Controllers.FollowersController.GetFollowers(System.Int32)">
+            <summary>
+            Get followers of a user
+            </summary>
+        </member>
+        <member name="M:VisaoAPI.Controllers.FollowersController.GetFollowing(System.Int32)">
+            <summary>
+            Get users that a user is following
+            </summary>
+        </member>
+        <member name="M:VisaoAPI.Controllers.FollowersController.CheckFollowStatus(System.Int32,System.Int32)">
+            <summary>
+            Check if user A follows user B
+            </summary>
+        </member>
+        <member name="M:VisaoAPI.Controllers.FollowersController.GetFollowerStats(System.Int32)">
+            <summary>
+            Get follower statistics for a user
+            </summary>
+        </member>
+        <member name="M:VisaoAPI.Controllers.LikesController.GetPhotoLikes(System.Int32)">
+            <summary>
+            Get likes for a photo
+            </summary>
+        </member>
+        <member name="M:VisaoAPI.Controllers.LikesController.LikePhoto(System.Int32,System.Int32)">
+            <summary>
+            Like a photo
+            </summary>
+        </member>
+        <member name="M:VisaoAPI.Controllers.LikesController.UnlikePhoto(System.Int32,System.Int32)">
+            <summary>
+            Unlike a photo
+            </summary>
+        </member>
+        <member name="M:VisaoAPI.Controllers.LikesController.GetLike(System.Int32)">
+            <summary>
+            Get a like by ID
+            </summary>
+        </member>
+        <member name="M:VisaoAPI.Controllers.LikesController.CheckUserLikedPhoto(System.Int32,System.Int32)">
+            <summary>
+            Check if user liked a photo
+            </summary>
+        </member>
+        <member name="M:VisaoAPI.Controllers.LikesController.GetPhotoLikesCount(System.Int32)">
+            <summary>
+            Get likes count for a photo
+            </summary>
+        </member>
+        <member name="M:VisaoAPI.Controllers.MyPhotosController.GetMyPhotos">
+            <summary>
+            Get current user's photos only (requires authentication)
+            </summary>
+        </member>
+        <member name="M:VisaoAPI.Controllers.MyPhotosController.UpdateMyPhoto(System.Int32,VisaoAPI.DTOs.UpdatePhotoDto)">
+            <summary>
+            Update a photo (only if it belongs to the authenticated user)
+            </summary>
+        </member>
+        <member name="M:VisaoAPI.Controllers.MyPhotosController.DeleteMyPhoto(System.Int32)">
+            <summary>
+            Delete a photo (only if it belongs to the authenticated user)
+            </summary>
+        </member>
+        <member name="M:VisaoAPI.Controllers.PhotosController.GetPhotos">
+            <summary>
+            Get all photos
+            </summary>
+        </member>
+        <member name="M:VisaoAPI.Controllers.PhotosController.GetPhotosByTag(System.String,System.Int32,System.Boolean)">
+            <summary>
+            Get first 25 photos by tag name
+            </summary>
+        </member>
+        <member name="M:VisaoAPI.Controllers.PhotosController.GetFeed">
+            <summary>
+            Get a personalized feed: photos only from users the current user follows
+            </summary>
+        </member>
+        <member name="M:VisaoAPI.Controllers.PhotosController.GetPhotosByAlbum(System.Int32)">
+            <summary>
+            Get photos by album ID
+            </summary>
+        </member>
+        <member name="M:VisaoAPI.Controllers.PhotosController.GetUsersWhoLikedPhoto(System.Int32)">
+            <summary>
+            Get users who liked a specific photo
+            </summary>
+        </member>
+        <member name="M:VisaoAPI.Controllers.PhotosController.GetPhoto(System.Int32)">
+            <summary>
+            Get a photo by ID
+            </summary>
+        </member>
+        <member name="M:VisaoAPI.Controllers.PhotosController.GetPhotosByUser(System.Int32)">
+            <summary>
+            Get photos by user ID
+            </summary>
+        </member>
+        <member name="M:VisaoAPI.Controllers.PhotosController.CreatePhoto(System.Int32,VisaoAPI.DTOs.CreatePhotoDto)">
+            <summary>
+            Create a new photo
+            </summary>
+        </member>
+        <member name="M:VisaoAPI.Controllers.PhotosController.UpdatePhoto(System.Int32,VisaoAPI.DTOs.UpdatePhotoDto)">
+            <summary>
+            Update a photo
+            </summary>
+        </member>
+        <member name="M:VisaoAPI.Controllers.PhotosController.DeletePhoto(System.Int32)">
+            <summary>
+            Delete a photo
+            </summary>
+        </member>
+        <member name="M:VisaoAPI.Controllers.TagsController.GetTags">
+            <summary>
+            Get all tags
+            </summary>
+        </member>
+        <member name="M:VisaoAPI.Controllers.TagsController.GetPhotosByTag(System.String)">
+            <summary>
+            Get photos by tag
+            </summary>
+        </member>
+        <member name="M:VisaoAPI.Controllers.TagsController.GetPopularTags(System.Int32)">
+            <summary>
+            Get popular tags (most used)
+            </summary>
+        </member>
+        <member name="M:VisaoAPI.Controllers.UsersController.GetUsers">
+            <summary>
+            Get all users
+            </summary>
+        </member>
+        <member name="M:VisaoAPI.Controllers.UsersController.GetUser(System.Int32)">
+            <summary>
+            Get a user by ID
+            </summary>
+        </member>
+        <member name="M:VisaoAPI.Controllers.UsersController.CreateUser(VisaoAPI.DTOs.CreateUserDto)">
+            <summary>
+            Create a new user
+            </summary>
+        </member>
+        <member name="M:VisaoAPI.Controllers.UsersController.UpdateUser(System.Int32,VisaoAPI.DTOs.UpdateUserDto)">
+            <summary>
+            Update a user
+            </summary>
+        </member>
+        <member name="M:VisaoAPI.Controllers.UsersController.DeleteUser(System.Int32)">
+            <summary>
+            Delete a user
+            </summary>
+        </member>
+        <member name="T:VisaoAPI.Models.AlbumWithDetails">
+            <summary>
+            Album model with additional details from joined tables (User, Photos count)
+            Used by repositories when fetching albums with related data
+            </summary>
+        </member>
+        <member name="T:VisaoAPI.Models.PhotoWithDetails">
+            <summary>
+            Photo model with additional details from joined tables (User, Album)
+            Used by repositories when fetching photos with related data
+            </summary>
+        </member>
+    </members>
+</doc>

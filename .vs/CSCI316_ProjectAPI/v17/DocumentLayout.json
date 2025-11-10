@@ -1,0 +1,59 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\enzod\\Documents\\CSCI Final\\CSCI316_ProjectAPI\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{00AB12B5-6B83-4C8B-9C0E-49FAA2B8EA2F}|DatabaseProject\\DatabaseProject.sqlproj|C:\\Users\\enzod\\Documents\\CSCI Final\\CSCI316_ProjectAPI\\DatabaseProject\\dbo\\Script1.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}",
+      "RelativeMoniker": "D:0:0:{00AB12B5-6B83-4C8B-9C0E-49FAA2B8EA2F}|DatabaseProject\\DatabaseProject.sqlproj|solutionrelative:DatabaseProject\\dbo\\Script1.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{00AB12B5-6B83-4C8B-9C0E-49FAA2B8EA2F}|DatabaseProject\\DatabaseProject.sqlproj|C:\\Users\\enzod\\Documents\\CSCI Final\\CSCI316_ProjectAPI\\DatabaseProject\\Scripts\\ScriptsIgnoredOnImport.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}",
+      "RelativeMoniker": "D:0:0:{00AB12B5-6B83-4C8B-9C0E-49FAA2B8EA2F}|DatabaseProject\\DatabaseProject.sqlproj|solutionrelative:DatabaseProject\\Scripts\\ScriptsIgnoredOnImport.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{00AB12B5-6B83-4C8B-9C0E-49FAA2B8EA2F}|DatabaseProject\\DatabaseProject.sqlproj|C:\\Users\\enzod\\Documents\\CSCI Final\\CSCI316_ProjectAPI\\DatabaseProject\\Scripts\\ScriptsIgnoredOnImport.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}|CodeFrame",
+      "RelativeMoniker": "D:0:0:{00AB12B5-6B83-4C8B-9C0E-49FAA2B8EA2F}|DatabaseProject\\DatabaseProject.sqlproj|solutionrelative:DatabaseProject\\Scripts\\ScriptsIgnoredOnImport.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}|CodeFrame"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{00AB12B5-6B83-4C8B-9C0E-49FAA2B8EA2F}|DatabaseProject\\DatabaseProject.sqlproj|C:\\Users\\enzod\\Documents\\CSCI Final\\CSCI316_ProjectAPI\\DatabaseProject\\dbo\\Script1.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}|CodeFrame",
+      "RelativeMoniker": "D:0:0:{00AB12B5-6B83-4C8B-9C0E-49FAA2B8EA2F}|DatabaseProject\\DatabaseProject.sqlproj|solutionrelative:DatabaseProject\\dbo\\Script1.sql||{CC5D8DF0-88F4-4BB2-9DBB-B48CEE65C30A}|CodeFrame"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "Script1.sql ",
+              "DocumentMoniker": "C:\\Users\\enzod\\Documents\\CSCI Final\\CSCI316_ProjectAPI\\DatabaseProject\\dbo\\Script1.sql",
+              "RelativeDocumentMoniker": "DatabaseProject\\dbo\\Script1.sql",
+              "ToolTip": "C:\\Users\\enzod\\Documents\\CSCI Final\\CSCI316_ProjectAPI\\DatabaseProject\\dbo\\Script1.sql\r\n(ENZO\\enzod)",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
+              "WhenOpened": "2025-10-04T22:34:11.879Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "ScriptsIgnoredOnImport.sql ",
+              "DocumentMoniker": "C:\\Users\\enzod\\Documents\\CSCI Final\\CSCI316_ProjectAPI\\DatabaseProject\\Scripts\\ScriptsIgnoredOnImport.sql",
+              "RelativeDocumentMoniker": "DatabaseProject\\Scripts\\ScriptsIgnoredOnImport.sql",
+              "ToolTip": "C:\\Users\\enzod\\Documents\\CSCI Final\\CSCI316_ProjectAPI\\DatabaseProject\\Scripts\\ScriptsIgnoredOnImport.sql",
+              "RelativeToolTip": "DatabaseProject\\Scripts\\ScriptsIgnoredOnImport.sql",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
+              "WhenOpened": "2025-10-04T22:32:33.541Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
