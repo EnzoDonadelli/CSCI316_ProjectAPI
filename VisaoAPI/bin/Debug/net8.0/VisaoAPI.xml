@@ -72,6 +72,11 @@
             </summary>
             <returns>Token validation result</returns>
         </member>
+        <member name="M:VisaoAPI.Controllers.AuthController.UpdateProfile(VisaoAPI.DTOs.UpdateUserDto)">
+            <summary>
+            Update current authenticated user's profile (full name, bio, profile picture)
+            </summary>
+        </member>
         <member name="M:VisaoAPI.Controllers.CommentsController.GetPhotoComments(System.Int32)">
             <summary>
             Get comments for a photo
@@ -172,9 +177,14 @@
             Get all photos
             </summary>
         </member>
-        <member name="M:VisaoAPI.Controllers.PhotosController.GetPhotosByTag(System.String,System.Int32)">
+        <member name="M:VisaoAPI.Controllers.PhotosController.GetPhotosByTag(System.String,System.Int32,System.Boolean)">
             <summary>
             Get first 25 photos by tag name
+            </summary>
+        </member>
+        <member name="M:VisaoAPI.Controllers.PhotosController.GetFeed">
+            <summary>
+            Get a personalized feed: photos only from users the current user follows
             </summary>
         </member>
         <member name="M:VisaoAPI.Controllers.PhotosController.GetPhotosByAlbum(System.Int32)">

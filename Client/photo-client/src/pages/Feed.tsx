@@ -15,11 +15,35 @@ export default function Feed() {
   const [selectedId, setSelectedId] = useState<number | null>(null)
 
   useEffect(() => {
-    dispatch(fetchPhotos())
+    // Personalized feed (followed users). Fallback to all photos if endpoint fails.
+    const load = async () => {
+      try {
+        const res = await api.get('/api/photos/feed')
+        const data = Array.isArray(res.data) ? res.data : (res.data.value ?? res.data)
+        const sorted = [...data].sort((a: any, b: any) => {
+          const la = (a.likesCount ?? a.LikesCount ?? 0)
+          const lb = (b.likesCount ?? b.LikesCount ?? 0)
+          if (lb !== la) return lb - la
+          return (b.photoId ?? b.PhotoId ?? 0) - (a.photoId ?? a.PhotoId ?? 0)
+        })
+        setLocalPhotos(sorted)
+      } catch {
+        dispatch(fetchPhotos())
+      }
+    }
+    load()
   }, [dispatch])
 
   useEffect(() => {
-    setLocalPhotos(photos)
+    // photos may already be sorted by API; enforce likes desc fallback
+    const sorted = [...photos].sort((a: any, b: any) => {
+      const la = (a.likesCount ?? a.LikesCount ?? 0)
+      const lb = (b.likesCount ?? b.LikesCount ?? 0)
+      if (lb !== la) return lb - la
+      // fallback stable ordering by photoId desc
+      return (b.photoId ?? b.PhotoId ?? 0) - (a.photoId ?? a.PhotoId ?? 0)
+    })
+    setLocalPhotos(sorted)
   }, [photos])
 
   const onSearch = async () => {
@@ -30,10 +54,17 @@ export default function Feed() {
     }
 
     try {
-      const res = await api.get(`/api/photos/tag/${encodeURIComponent(q)}?limit=50`)
+      // Discovery mode: exclude photos from followed users
+      const res = await api.get(`/api/photos/tag/${encodeURIComponent(q)}?limit=50&excludeFollowed=true`)
       // API returns an object { value: [...], Count: n } in some responses or an array; normalize
       const data = Array.isArray(res.data) ? res.data : (res.data.value ?? res.data)
-      setLocalPhotos(data)
+      const sorted = [...data].sort((a: any, b: any) => {
+        const la = (a.likesCount ?? a.LikesCount ?? 0)
+        const lb = (b.likesCount ?? b.LikesCount ?? 0)
+        if (lb !== la) return lb - la
+        return (b.photoId ?? b.PhotoId ?? 0) - (a.photoId ?? a.PhotoId ?? 0)
+      })
+      setLocalPhotos(sorted)
     } catch (err) {
       console.error('search error', err)
     }
@@ -41,7 +72,13 @@ export default function Feed() {
 
   const clearSearch = () => {
     setSearchTerm('')
-    setLocalPhotos(photos)
+      const sorted = [...photos].sort((a: any, b: any) => {
+        const la = (a.likesCount ?? a.LikesCount ?? 0)
+        const lb = (b.likesCount ?? b.LikesCount ?? 0)
+        if (lb !== la) return lb - la
+        return (b.photoId ?? b.PhotoId ?? 0) - (a.photoId ?? a.PhotoId ?? 0)
+      })
+      setLocalPhotos(sorted)
   }
 
   return (

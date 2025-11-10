@@ -1,15 +1,17 @@
 import React, { useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { Typography, Box, Avatar, Grid, Button, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material'
+import { Typography, Box, Avatar, Grid, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField } from '@mui/material'
 import PhotoCard from '../components/PhotoCard'
 import PhotoDetailModal from '../components/PhotoDetailModal'
 import { useState } from 'react'
 import api from '../api/axios'
-import { useAppSelector } from '../store/hooks'
+import { useAppDispatch, useAppSelector } from '../store/hooks'
+import { setUser as setUserInStore } from '../store/userSlice'
 
 export default function User() {
   const { id } = useParams()
   const currentUser = useAppSelector(s => (s as any).user.user)
+  const dispatch = useAppDispatch()
 
   const [user, setUser] = useState<any | null>(null)
   const [photos, setPhotos] = useState<any[]>([])
@@ -18,6 +20,17 @@ export default function User() {
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [openAlbumDialog, setOpenAlbumDialog] = useState(false)
   const [openPhotoDialog, setOpenPhotoDialog] = useState(false)
+  const [openEdit, setOpenEdit] = useState(false)
+  const [editFullName, setEditFullName] = useState('')
+  const [editBio, setEditBio] = useState('')
+  const [editProfilePic, setEditProfilePic] = useState('')
+  const [stats, setStats] = useState<{ followers: number; following: number }>({ followers: 0, following: 0 })
+  const [isFollowing, setIsFollowing] = useState<boolean | null>(null)
+  const [followBusy, setFollowBusy] = useState(false)
+  const [openFollowers, setOpenFollowers] = useState(false)
+  const [openFollowing, setOpenFollowing] = useState(false)
+  const [followersList, setFollowersList] = useState<any[]>([])
+  const [followingList, setFollowingList] = useState<any[]>([])
 
   // Inline form to create an album
   function CreateAlbumForm({ userId, onCreated }: { userId: number; onCreated?: () => void }) {
@@ -191,16 +204,39 @@ export default function User() {
 
   // fetch photos by user
   const p = await api.get(`/api/photos/user/${targetId}`)
-        // normalize photo DTOs (handle PascalCase or camelCase)
+        // normalize & already sorted by API (likes desc). If API doesn't sort, enforce it here.
         const normalized = (p.data || []).map((ph: any) => ({
           photoId: ph.photoId ?? ph.PhotoId,
           title: ph.title ?? ph.Title,
           username: ph.username ?? ph.Username,
           imageUrl: ph.imageUrl ?? ph.ImageUrl,
-          likesCount: ph.likesCount ?? ph.LikesCount,
-          commentsCount: ph.commentsCount ?? ph.CommentsCount
+          likesCount: ph.likesCount ?? ph.LikesCount ?? 0,
+          commentsCount: ph.commentsCount ?? ph.CommentsCount ?? 0
         }))
+        normalized.sort((a: any, b: any) => (b.likesCount - a.likesCount) || (b.photoId - a.photoId))
         setPhotos(normalized)
+        // fetch follower stats
+        try {
+          const s = await api.get(`/api/followers/${targetId}/stats`)
+          setStats({ followers: s.data?.followersCount ?? s.data?.FollowersCount ?? 0, following: s.data?.followingCount ?? s.data?.FollowingCount ?? 0 })
+        } catch {}
+
+        // fetch follow status (only when viewing another user's profile and logged in)
+        try {
+          if (currentUser && currentUser.id !== targetId) {
+            // enable button immediately while loading status
+            if (isFollowing === null) setIsFollowing(false)
+            const r = await api.get(`/api/followers/${currentUser.id}/follows/${targetId}`)
+            const follows = r.data === true || r.data === 'true' || r.data?.follows === true || r.data?.Follows === true
+            setIsFollowing(!!follows)
+          } else {
+            setIsFollowing(null)
+          }
+        } catch {
+          // if status check fails, keep it enabled as not-following so the user can try
+          setIsFollowing(false)
+        }
+
         // fetch albums by user
         try {
           const a = await api.get(`/api/albums/user/${targetId}`)
@@ -222,6 +258,98 @@ export default function User() {
     load()
   }, [id, currentUser])
 
+  // Keep edit form in sync with loaded user
+  useEffect(() => {
+    if (user) {
+      setEditFullName(user.fullName ?? '')
+      setEditBio(user.bio ?? '')
+      setEditProfilePic(user.profilePic ?? '')
+    }
+  }, [user])
+
+  const saveProfile = async () => {
+    try {
+      const payload: any = {
+        fullName: editFullName || undefined,
+        bio: editBio, // allow empty string to clear
+        profilePic: editProfilePic // allow empty string to clear
+      }
+      await api.put('/api/auth/profile', payload)
+      const updated = { ...(user || {}), fullName: editFullName, bio: editBio, profilePic: editProfilePic }
+      setUser(updated)
+      // If editing own profile, update global store
+      if (currentUser && (currentUser.id === updated.id || currentUser.id === updated.userId || currentUser.id === updated.UserId)) {
+        dispatch(setUserInStore(updated))
+      }
+      setOpenEdit(false)
+    } catch (e: any) {
+      alert(e?.response?.data?.message || e.message || 'Failed to update profile')
+    }
+  }
+
+  const targetUserId = (user?.id ?? user?.userId ?? user?.UserId) as number | undefined
+  const viewingOwnProfile = !!(currentUser && targetUserId && currentUser.id === targetUserId)
+
+  const refreshFollowState = async () => {
+    if (!targetUserId) return
+    try {
+      const s = await api.get(`/api/followers/${targetUserId}/stats`)
+      setStats({ followers: s.data?.followersCount ?? s.data?.FollowersCount ?? 0, following: s.data?.followingCount ?? s.data?.FollowingCount ?? 0 })
+    } catch {}
+    try {
+      if (currentUser && currentUser.id !== targetUserId) {
+        const r = await api.get(`/api/followers/${currentUser.id}/follows/${targetUserId}`)
+        const follows = r.data === true || r.data === 'true' || r.data?.follows === true || r.data?.Follows === true
+        setIsFollowing(!!follows)
+      }
+    } catch {}
+    // if followers dialog is open, refresh list to reflect DB
+    try {
+      if (openFollowers) {
+        const r = await api.get(`/api/followers/${targetUserId}/followers`)
+        setFollowersList(r.data || [])
+      }
+    } catch {}
+  }
+
+  const handleFollow = async () => {
+    if (!currentUser || !targetUserId) return
+    setFollowBusy(true)
+    try {
+      await api.post(`/api/followers/${currentUser.id}/follow/${targetUserId}`)
+      await refreshFollowState()
+    } catch (e: any) {
+      const msg = e?.response?.data || e.message || 'Failed to follow user'
+      if (typeof msg === 'string' && msg.toLowerCase().includes('already')) {
+        // already following; sync state from server
+        await refreshFollowState()
+      } else {
+        alert(msg)
+      }
+    } finally {
+      setFollowBusy(false)
+    }
+  }
+
+  const handleUnfollow = async () => {
+    if (!currentUser || !targetUserId) return
+    setFollowBusy(true)
+    try {
+      await api.delete(`/api/followers/${currentUser.id}/unfollow/${targetUserId}`)
+      await refreshFollowState()
+    } catch (e: any) {
+      const msg = e?.response?.data || e.message || 'Failed to unfollow user'
+      if (typeof msg === 'string' && msg.toLowerCase().includes('not found')) {
+        // relationship already gone; sync
+        await refreshFollowState()
+      } else {
+        alert(msg)
+      }
+    } finally {
+      setFollowBusy(false)
+    }
+  }
+
   return (
     <Box>
       <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 3 }}>
@@ -230,6 +358,30 @@ export default function User() {
           <Typography variant="h5">{user?.fullName ?? 'Unknown'}</Typography>
           <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>@{user?.username ?? 'unknown'}</Typography>
           <Typography sx={{ mt: 1 }}>{user?.bio}</Typography>
+          {viewingOwnProfile && (
+            <Button size="small" sx={{ mt: 1 }} variant="outlined" onClick={() => setOpenEdit(true)}>Edit Profile</Button>
+          )}
+          {!viewingOwnProfile && currentUser && targetUserId && (
+            <Box sx={{ mt: 1 }}>
+              {isFollowing ? (
+                <Button size="small" variant="outlined" color="secondary" disabled={followBusy} onClick={handleUnfollow}>
+                  {followBusy ? 'Unfollowing...' : 'Unfollow'}
+                </Button>
+              ) : (
+                <Button size="small" variant="contained" disabled={followBusy} onClick={handleFollow}>
+                  {followBusy ? 'Following...' : 'Follow'}
+                </Button>
+              )}
+            </Box>
+          )}
+          <Box sx={{ mt: 1, display: 'flex', gap: 2 }}>
+            <Button size="small" onClick={async () => { setOpenFollowers(true); try { const r = await api.get(`/api/followers/${user?.id ?? user?.userId ?? user?.UserId}/followers`); setFollowersList(r.data || []) } catch {} }}>
+              {stats.followers} Followers
+            </Button>
+            <Button size="small" onClick={async () => { setOpenFollowing(true); try { const r = await api.get(`/api/followers/${user?.id ?? user?.userId ?? user?.UserId}/following`); setFollowingList(r.data || []) } catch {} }}>
+              {stats.following} Following
+            </Button>
+          </Box>
         </Box>
       </Box>
 
@@ -270,9 +422,10 @@ export default function User() {
                     title: ph.title ?? ph.Title,
                     username: ph.username ?? ph.Username,
                     imageUrl: ph.imageUrl ?? ph.ImageUrl,
-                    likesCount: ph.likesCount ?? ph.LikesCount,
-                    commentsCount: ph.commentsCount ?? ph.CommentsCount
+                    likesCount: ph.likesCount ?? ph.LikesCount ?? 0,
+                    commentsCount: ph.commentsCount ?? ph.CommentsCount ?? 0
                   }))
+                  normalized.sort((a: any, b: any) => (b.likesCount - a.likesCount) || (b.photoId - a.photoId))
                   setPhotos(normalized)
                 } catch {}
               }}
@@ -317,6 +470,52 @@ export default function User() {
         </Box>
       )}
       <PhotoDetailModal open={!!selectedId} photoId={selectedId ?? null} onClose={() => setSelectedId(null)} initial={undefined} />
+
+      {/* Edit Profile Dialog */}
+      <Dialog open={openEdit} onClose={() => setOpenEdit(false)} fullWidth maxWidth="sm">
+        <DialogTitle>Edit Profile</DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+            <TextField label="Full Name" value={editFullName} onChange={e => setEditFullName(e.target.value)} fullWidth />
+            <TextField label="Bio" value={editBio} onChange={e => setEditBio(e.target.value)} fullWidth multiline rows={3} />
+            <TextField label="Profile Picture URL or data URI" value={editProfilePic} onChange={e => setEditProfilePic(e.target.value)} fullWidth />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenEdit(false)}>Cancel</Button>
+          <Button variant="contained" onClick={saveProfile}>Save</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Followers Dialog */}
+      <Dialog open={openFollowers} onClose={() => setOpenFollowers(false)} fullWidth maxWidth="xs">
+        <DialogTitle>Followers</DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 1 }}>
+            {followersList.map(u => (
+              <Box key={u.userId ?? u.UserId} sx={{ display: 'flex', alignItems: 'center', gap: 1, cursor: 'pointer' }} onClick={() => { setOpenFollowers(false); window.location.href = `/users/${u.userId ?? u.UserId}` }}>
+                <Avatar src={u.profilePic ?? u.ProfilePic} sx={{ width: 28, height: 28 }} />
+                <Typography>{u.fullName ?? u.FullName ?? u.username ?? u.Username}</Typography>
+              </Box>
+            ))}
+          </Box>
+        </DialogContent>
+      </Dialog>
+
+      {/* Following Dialog */}
+      <Dialog open={openFollowing} onClose={() => setOpenFollowing(false)} fullWidth maxWidth="xs">
+        <DialogTitle>Following</DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 1 }}>
+            {followingList.map(u => (
+              <Box key={u.userId ?? u.UserId} sx={{ display: 'flex', alignItems: 'center', gap: 1, cursor: 'pointer' }} onClick={() => { setOpenFollowing(false); window.location.href = `/users/${u.userId ?? u.UserId}` }}>
+                <Avatar src={u.profilePic ?? u.ProfilePic} sx={{ width: 28, height: 28 }} />
+                <Typography>{u.fullName ?? u.FullName ?? u.username ?? u.Username}</Typography>
+              </Box>
+            ))}
+          </Box>
+        </DialogContent>
+      </Dialog>
     </Box>
   )
 }

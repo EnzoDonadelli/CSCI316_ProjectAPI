@@ -177,8 +177,9 @@ namespace VisaoAPI.Services
                 if (updateUserDto.Bio != null)
                     user.Bio = updateUserDto.Bio;
                 
-                if (!string.IsNullOrEmpty(updateUserDto.ProfilePic))
-                    user.ProfilePic = updateUserDto.ProfilePic;
+                // Allow clearing profile picture by sending empty string explicitly
+                if (updateUserDto.ProfilePic != null)
+                    user.ProfilePic = updateUserDto.ProfilePic; // may be empty string to clear
 
                 await _userRepository.UpdateAsync(user);
                 _logger.LogInformation("User {UserId} updated successfully", id);

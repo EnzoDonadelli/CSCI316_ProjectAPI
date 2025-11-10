@@ -136,8 +136,10 @@ if (app.Environment.IsDevelopment())
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "Photo Sharing API v1");
         c.RoutePrefix = string.Empty; // Serve Swagger UI at the app's root
     });
-    app.UseCors("AllowAll");
 }
+
+// Always enable CORS so preflight (OPTIONS) for PUT/DELETE succeeds even outside Development
+app.UseCors("AllowAll");
 
 app.UseHttpsRedirection();
 

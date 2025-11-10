@@ -9,6 +9,7 @@ type Photo = {
   photoId: number
   title?: string
   username?: string
+  userId?: number
   imageUrl?: string
   uploadedAt?: string
   tags?: string[]
@@ -118,7 +119,19 @@ export default function PhotoCard({ photo, onClick, ownerUserId, onDeleted, onUp
             <Typography variant="subtitle1" sx={{ color: 'white', fontWeight: 700 }}>
               {photo.title ?? 'Untitled'}
             </Typography>
-            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.85)' }}>
+            <Typography
+              component="span"
+              variant="caption"
+              sx={{ color: 'rgba(255,255,255,0.85)', cursor: 'pointer', textDecoration: 'underline' }}
+              onClick={(e) => {
+                e.stopPropagation()
+                const uid = (photo as any).userId ?? (photo as any).UserId
+                if (uid) {
+                  // navigate without importing useNavigate in this component; fall back to window
+                  window.location.href = `/users/${uid}`
+                }
+              }}
+            >
               By {photo.username ?? 'unknown'}
             </Typography>
           </Box>

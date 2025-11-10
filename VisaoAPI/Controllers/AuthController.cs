@@ -221,5 +221,47 @@ namespace VisaoAPI.Controllers
                 return StatusCode(500, new { message = "An error occurred while validating token" });
             }
         }
+
+        /// <summary>
+        /// Update current authenticated user's profile (full name, bio, profile picture)
+        /// </summary>
+    [HttpPut("profile")]
+    [Consumes("application/json")]
+        [Authorize]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult> UpdateProfile([FromBody] UpdateUserDto updateUserDto)
+        {
+            try
+            {
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
+                {
+                    return Unauthorized();
+                }
+
+                if (updateUserDto == null)
+                {
+                    return BadRequest(new { message = "No data provided" });
+                }
+
+                _logger.LogInformation("Profile update requested for user {UserId}", userId);
+                var updated = await _authService.UpdateUserAsync(userId, updateUserDto);
+                _logger.LogInformation("Profile update result for user {UserId}: {Result}", userId, updated);
+                if (!updated)
+                {
+                    return NotFound(new { message = "User not found" });
+                }
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating profile");
+                return StatusCode(500, new { message = "An error occurred while updating profile" });
+            }
+        }
     }
 }

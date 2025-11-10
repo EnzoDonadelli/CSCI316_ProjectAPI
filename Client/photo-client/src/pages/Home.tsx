@@ -26,7 +26,7 @@ export default function Home() {
         <div className="brand-hero-stack">
           <div className="hero-layer" />
           <div className="hero-layer2" />
-          <div className="hero-main"><img src={heroImages[0]} alt="Hero" /></div>
+          <div className="hero-main"><img src="https://github.com/EnzoDonadelli/CSCI316_ProjectAPI/blob/feature10/week10-authclient/EXTRAS/251017_C_Music%20at%20Davis_ED-0630.jpg?raw=true" alt="Hero" /></div>
         </div>
         <div className="brand-hero-sub">Be the photographer they need</div>
       </div>
@@ -35,17 +35,17 @@ export default function Home() {
       <section className="brand-section">
         <div className="brand-section-grid">
           <div className="brand-feature">
-            <img src={featureImages[0]} alt="Create Albums" loading="lazy" />
+            <img src="https://github.com/EnzoDonadelli/CSCI316_ProjectAPI/blob/feature10/week10-authclient/EXTRAS/251016_C_Monitor%20Night%20Live_ED-9891.jpg?raw=true" alt="Create Albums" loading="lazy" />
             <h3>Showcase your work</h3>
             <p>Group your photos into cohesive narratives. Edit titles and descriptions any time.</p>
           </div>
           <div className="brand-feature">
-            <img src={featureImages[1]} alt="Discover" loading="lazy" />
+            <img src="https://github.com/EnzoDonadelli/CSCI316_ProjectAPI/blob/feature10/week10-authclient/EXTRAS/251019_C_Soccer%20Alumni%20Scrimmage_ED-0611.jpg?raw=true" alt="Discover" loading="lazy" />
             <h3>Search for keywords</h3>
             <p>Use tags & keywords to surface exactly what inspires you.</p>
           </div>
           <div className="brand-feature">
-            <img src={featureImages[2]} alt="Connect" loading="lazy" />
+            <img src="https://github.com/EnzoDonadelli/CSCI316_ProjectAPI/blob/feature10/week10-authclient/EXTRAS/250930_C_Career%20Fair_ED-8664.jpg?raw=true" alt="Connect" loading="lazy" />
             <h3>Connect</h3>
             <p>Follow creators, like & comment to build genuine creative relationships.</p>
           </div>

@@ -17,7 +17,8 @@ namespace VisaoAPI.Controllers
         private readonly IPhotoTagRepository _photoTagRepository;
         private readonly IUserRepository _userRepository;
         private readonly IAlbumRepository _albumRepository;
-        private readonly ITagRepository _tagRepository;
+    private readonly ITagRepository _tagRepository;
+    private readonly IFollowerRepository _followerRepository;
         private readonly ILogger<PhotosController> _logger;
 
         public PhotosController(
@@ -28,6 +29,7 @@ namespace VisaoAPI.Controllers
             IUserRepository userRepository,
             IAlbumRepository albumRepository,
             ITagRepository tagRepository,
+            IFollowerRepository followerRepository,
             ILogger<PhotosController> logger)
         {
             _photoRepository = photoRepository;
@@ -37,6 +39,7 @@ namespace VisaoAPI.Controllers
             _userRepository = userRepository;
             _albumRepository = albumRepository;
             _tagRepository = tagRepository;
+            _followerRepository = followerRepository;
             _logger = logger;
         }
 
@@ -68,11 +71,11 @@ namespace VisaoAPI.Controllers
         /// Get all photos
         /// </summary>
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<PhotoDto>>> GetPhotos()
+    public async Task<ActionResult<IEnumerable<PhotoDto>>> GetPhotos()
         {
             try
             {
-                var photos = await _photoRepository.GetAllAsync();
+        var photos = await _photoRepository.GetAllAsync();
                 
                 var photoDtos = new List<PhotoDto>();
                 foreach (var photo in photos)
@@ -99,7 +102,11 @@ namespace VisaoAPI.Controllers
                     });
                 }
 
-                return Ok(photoDtos);
+                // Order descending by likes, then by uploaded date for stability
+                var ordered = photoDtos
+                    .OrderByDescending(p => p.LikesCount)
+                    .ThenByDescending(p => p.UploadedAt);
+                return Ok(ordered);
             }
             catch (Exception ex)
             {
@@ -112,7 +119,7 @@ namespace VisaoAPI.Controllers
         /// Get first 25 photos by tag name
         /// </summary>
         [HttpGet("tag/{tagName}")]
-        public async Task<ActionResult<IEnumerable<PhotoDto>>> GetPhotosByTag(string tagName, [FromQuery] int limit = 25)
+        public async Task<ActionResult<IEnumerable<PhotoDto>>> GetPhotosByTag(string tagName, [FromQuery] int limit = 25, [FromQuery] bool excludeFollowed = false)
         {
             try
             {
@@ -143,12 +150,92 @@ namespace VisaoAPI.Controllers
                     });
                 }
 
-                return Ok(photoDtos);
+                var ordered = photoDtos
+                    .OrderByDescending(p => p.LikesCount)
+                    .ThenByDescending(p => p.UploadedAt);
+                // Optionally exclude photos from users the current user already follows (discovery mode)
+                if (excludeFollowed)
+                {
+                    try
+                    {
+                        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                        if (!string.IsNullOrEmpty(userIdClaim) && int.TryParse(userIdClaim, out var authUserId))
+                        {
+                            var followingUsers = await _followerRepository.GetFollowingUsersAsync(authUserId);
+                            var followingIds = new HashSet<int>(followingUsers.Select(u => u.UserId));
+                            ordered = ordered.Where(p => !followingIds.Contains(p.UserId))
+                                            .OrderByDescending(p => p.LikesCount)
+                                            .ThenByDescending(p => p.UploadedAt);
+                        }
+                    }
+                    catch { /* ignore */ }
+                }
+
+                return Ok(ordered);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting photos by tag: {TagName}", tagName);
                 return StatusCode(500, "An error occurred while retrieving photos by tag");
+            }
+        }
+
+        /// <summary>
+        /// Get a personalized feed: photos only from users the current user follows
+        /// </summary>
+        [Authorize]
+        [HttpGet("feed")]
+        public async Task<ActionResult<IEnumerable<PhotoDto>>> GetFeed()
+        {
+            try
+            {
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var authUserId))
+                {
+                    return Unauthorized();
+                }
+
+                var followingUsers = await _followerRepository.GetFollowingUsersAsync(authUserId);
+                var followingIds = new HashSet<int>(followingUsers.Select(u => u.UserId));
+
+                var photos = await _photoRepository.GetAllAsync();
+
+                var photoDtos = new List<PhotoDto>();
+                foreach (var photo in photos)
+                {
+                    if (!followingIds.Contains(photo.UserId)) continue;
+                    var tags = await _photoTagRepository.GetTagNamesByPhotoIdAsync(photo.PhotoId);
+                    var likesCount = await _likeRepository.GetCountByPhotoIdAsync(photo.PhotoId);
+                    var commentsCount = await _commentRepository.GetCountByPhotoIdAsync(photo.PhotoId);
+
+                    photoDtos.Add(new PhotoDto
+                    {
+                        PhotoId = photo.PhotoId,
+                        UserId = photo.UserId,
+                        Username = photo.Username,
+                        AlbumId = photo.AlbumId,
+                        AlbumTitle = photo.AlbumTitle,
+                        Title = photo.Title,
+                        Description = photo.Description,
+                        ImageUrl = photo.ImageUrl,
+                        FullImageUrl = BuildFullImageUrl(photo.ImageUrl),
+                        UploadedAt = photo.UploadedAt,
+                        Tags = tags.ToList(),
+                        LikesCount = likesCount,
+                        CommentsCount = commentsCount
+                    });
+                }
+
+                var ordered = photoDtos
+                    .OrderByDescending(p => p.LikesCount)
+                    .ThenByDescending(p => p.UploadedAt);
+
+                return Ok(ordered);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error building personalized feed");
+                return StatusCode(500, "An error occurred while building the feed");
             }
         }
 
@@ -187,7 +274,10 @@ namespace VisaoAPI.Controllers
                     });
                 }
 
-                return Ok(photoDtos);
+                var ordered = photoDtos
+                    .OrderByDescending(p => p.LikesCount)
+                    .ThenByDescending(p => p.UploadedAt);
+                return Ok(ordered);
             }
             catch (Exception ex)
             {
@@ -312,7 +402,10 @@ namespace VisaoAPI.Controllers
                     });
                 }
 
-                return Ok(photoDtos);
+                var ordered = photoDtos
+                    .OrderByDescending(p => p.LikesCount)
+                    .ThenByDescending(p => p.UploadedAt);
+                return Ok(ordered);
             }
             catch (Exception ex)
             {
