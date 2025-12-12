@@ -1,0 +1,10 @@
+04/10/2025 17:29:29	Este log contém informações sobre a operação de importação do script 'photo_sharing_sample_data.sql' para o projeto 'DatabaseProject' no computador 'ENZO' pelo usuário 'enzod.
+04/10/2025 17:29:29	Iniciada a importação do arquivo: C:\Users\enzod\Downloads\photo_sharing_sample_data.sql 
+04/10/2025 17:29:29	Nome do arquivo C:\Users\enzod\Downloads\photo_sharing_sample_data.sql (tamanho: 1902)
+04/10/2025 17:29:29	Analisando script de importação
+04/10/2025 17:29:29	Número total de lotes no script: 1
+04/10/2025 17:29:29	Número total de instruções no script: 0
+04/10/2025 17:29:29	O scrip foi importado com êxito para o projeto.
+04/10/2025 17:29:29	No script fornecido para a operação de importação, uma ou mais instruções não foram completamente entendidas. Estas instruções foram movidas para o arquivo ScriptsIgnoredOnImport.sql. Examine o conteúdo do arquivo para obter mais informações.
+04/10/2025 17:29:29	Um resumo da importação foi salvo no seguinte local: C:\Users\enzod\Documents\CSCI Final\CSCI316_ProjectAPI\DatabaseProject\Importar Logs de Script\photo_sharing_sample_20251004102929.log.
+04/10/2025 17:29:29	Clique em Concluir para continuar...
