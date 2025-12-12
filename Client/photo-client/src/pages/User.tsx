@@ -289,6 +289,18 @@ export default function User() {
 
   const targetUserId = (user?.id ?? user?.userId ?? user?.UserId) as number | undefined
   const viewingOwnProfile = !!(currentUser && targetUserId && currentUser.id === targetUserId)
+  // Determine admin from JWT in localStorage
+  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
+  let isAdmin = false
+  if (token) {
+    try {
+      const payloadPart = token.split('.')[1]
+      const base64 = payloadPart.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(payloadPart.length / 4) * 4, '=')
+      const json = JSON.parse(atob(base64))
+      const role = json.role || json["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"]
+      isAdmin = role === 'admin' || (Array.isArray(role) && role.includes('admin'))
+    } catch {}
+  }
 
   const refreshFollowState = async () => {
     if (!targetUserId) return
@@ -361,6 +373,21 @@ export default function User() {
           {viewingOwnProfile && (
             <Button size="small" sx={{ mt: 1 }} variant="outlined" onClick={() => setOpenEdit(true)}>Edit Profile</Button>
           )}
+          {!viewingOwnProfile && isAdmin && targetUserId && (
+            <Box sx={{ mt: 1, display: 'flex', gap: 1 }}>
+              <Button size="small" variant="outlined" onClick={() => setOpenEdit(true)}>Admin: Edit User</Button>
+              <Button size="small" variant="contained" color="error" onClick={async () => {
+                if (!window.confirm('Delete this user? This cannot be undone.')) return
+                try {
+                  await api.delete(`/api/auth/users/${targetUserId}`)
+                  alert('User deleted.')
+                  window.location.href = '/'
+                } catch (e: any) {
+                  alert(e?.response?.data?.message || e.message || 'Failed to delete user')
+                }
+              }}>Admin: Delete User</Button>
+            </Box>
+          )}
           {!viewingOwnProfile && currentUser && targetUserId && (
             <Box sx={{ mt: 1 }}>
               {isFollowing ? (
@@ -372,6 +399,9 @@ export default function User() {
                   {followBusy ? 'Following...' : 'Follow'}
                 </Button>
               )}
+              <Button size="small" sx={{ ml: 1 }} variant="outlined" component={Link} to={`/chat/${targetUserId}`}>
+                Message
+              </Button>
             </Box>
           )}
           <Box sx={{ mt: 1, display: 'flex', gap: 2 }}>

@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using VisaoAPI.DTOs;
 using VisaoAPI.Models;
 using VisaoAPI.Repositories;
+using System.Security.Claims;
 
 namespace VisaoAPI.Controllers
 {
@@ -150,15 +152,28 @@ namespace VisaoAPI.Controllers
         /// <summary>
         /// Delete a comment
         /// </summary>
+        [Authorize]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteComment(int id)
         {
             try
             {
-                var commentExists = await _commentRepository.ExistsAsync(id);
-                if (!commentExists)
+                var comment = await _commentRepository.GetByIdAsync(id);
+                if (comment == null)
                 {
                     return NotFound();
+                }
+
+                // Ensure the authenticated user is the commenter or is admin
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var authUserId))
+                {
+                    return Unauthorized("Invalid user token");
+                }
+                var isAdmin = User.IsInRole("admin") || User.Claims.Any(c => c.Type == "role" && c.Value == "admin");
+                if (comment.UserId != authUserId && !isAdmin)
+                {
+                    return Forbid();
                 }
 
                 var deleted = await _commentRepository.DeleteAsync(id);

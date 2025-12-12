@@ -20,6 +20,56 @@ namespace VisaoAPI.Controllers
         }
 
         /// <summary>
+        /// Admin: update any user's profile
+        /// </summary>
+        [HttpPut("users/{id}")]
+        [Authorize(Roles = "admin")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult> AdminUpdateUser(int id, [FromBody] UpdateUserDto updateUserDto)
+        {
+            try
+            {
+                var updated = await _authService.UpdateUserAsync(id, updateUserDto);
+                if (!updated)
+                {
+                    return NotFound(new { message = "User not found" });
+                }
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error admin-updating user {UserId}", id);
+                return StatusCode(500, new { message = "An error occurred while updating user" });
+            }
+        }
+
+        /// <summary>
+        /// Admin: delete any user
+        /// </summary>
+        [HttpDelete("users/{id}")]
+        [Authorize(Roles = "admin")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult> AdminDeleteUser(int id)
+        {
+            try
+            {
+                var deleted = await _authService.DeleteUserAsync(id);
+                if (!deleted)
+                {
+                    return NotFound(new { message = "User not found" });
+                }
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error admin-deleting user {UserId}", id);
+                return StatusCode(500, new { message = "An error occurred while deleting user" });
+            }
+        }
+
+        /// <summary>
         /// Register a new user account
         /// </summary>
         /// <param name="registerDto">User registration data</param>

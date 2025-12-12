@@ -189,7 +189,7 @@ namespace VisaoAPI.Controllers
         {
             try
             {
-                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("userId")?.Value;
                 if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var authUserId))
                 {
                     return Unauthorized();
@@ -520,13 +520,14 @@ namespace VisaoAPI.Controllers
                     return NotFound();
                 }
 
-                // Ensure the authenticated user owns this photo
-                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                // Ensure the authenticated user owns this photo or is admin
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("userId")?.Value;
                 if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var authUserId))
                 {
                     return Unauthorized("Invalid user token");
                 }
-                if (photo.UserId != authUserId)
+                var isAdmin = User.IsInRole("admin") || User.Claims.Any(c => c.Type == "role" && c.Value == "admin");
+                if (photo.UserId != authUserId && !isAdmin)
                 {
                     return Forbid();
                 }
@@ -583,13 +584,14 @@ namespace VisaoAPI.Controllers
                     return NotFound();
                 }
 
-                // Ensure the authenticated user owns this photo
+                // Ensure the authenticated user owns this photo or is admin
                 var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var authUserId))
                 {
                     return Unauthorized("Invalid user token");
                 }
-                if (photo.UserId != authUserId)
+                var isAdmin = User.IsInRole("admin") || User.Claims.Any(c => c.Type == "role" && c.Value == "admin");
+                if (photo.UserId != authUserId && !isAdmin)
                 {
                     return Forbid();
                 }

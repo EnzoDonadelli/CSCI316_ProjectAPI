@@ -110,7 +110,10 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuerSigningKey = true,
             ValidIssuer = jwtIssuer,
             ValidAudience = jwtAudience,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecretKey))
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecretKey)),
+            // Ensure claims map correctly for our controllers
+            NameClaimType = System.Security.Claims.ClaimTypes.NameIdentifier,
+            RoleClaimType = System.Security.Claims.ClaimTypes.Role
         };
     });
 
@@ -248,6 +251,24 @@ app.MapControllers();
                     CreatedAt = DateTime.Now
                 };
                 context.Users.Add(userEnzo);
+                context.SaveChanges();
+            }
+
+            // Ensure admin user exists
+            var adminUser = context.Users.SingleOrDefault(u => u.Username == "admin" || u.Email == "admin@example.com");
+            if (adminUser == null)
+            {
+                adminUser = new VisaoAPI.Models.User
+                {
+                    Username = "admin",
+                    Email = "admin@example.com",
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin!234"),
+                    FullName = "Administrator",
+                    Bio = "Site administrator",
+                    ProfilePic = "WINDOW (1).jpg",
+                    CreatedAt = DateTime.Now
+                };
+                context.Users.Add(adminUser);
                 context.SaveChanges();
             }
 

@@ -19,10 +19,13 @@ namespace VisaoAPI.Services
         {
             try
             {
-                // Check if data already exists
+                // Always ensure configured admin user exists
+                await EnsureAdminUserAsync();
+
+                // Check if data already exists (sample data)
                 if (await _context.Users.AnyAsync())
                 {
-                    _logger.LogInformation("Database already contains data. Skipping seeding.");
+                    _logger.LogInformation("Database already contains data. Skipping sample data seeding.");
                     return;
                 }
 
@@ -60,6 +63,43 @@ namespace VisaoAPI.Services
                 _logger.LogError(ex, "An error occurred while seeding the database.");
                 // Fallback to programmatic seeding
                 await SeedDataProgrammatically();
+            }
+        }
+
+        private async Task EnsureAdminUserAsync()
+        {
+            try
+            {
+                // Admin username/email from configuration or defaults
+                var adminUsername = "admin";
+                var adminEmail = "admin@example.com";
+
+                var existingAdmin = await _context.Users.FirstOrDefaultAsync(u => u.Username == adminUsername || u.Email == adminEmail);
+                if (existingAdmin != null)
+                {
+                    _logger.LogInformation("Admin user already exists: {Username}", existingAdmin.Username);
+                    return;
+                }
+
+                var passwordHash = BCrypt.Net.BCrypt.HashPassword("Admin!234");
+                var adminUser = new Models.User
+                {
+                    Username = adminUsername,
+                    Email = adminEmail,
+                    PasswordHash = passwordHash,
+                    FullName = "Administrator",
+                    Bio = "Site administrator",
+                    ProfilePic = "admin.jpg",
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                _context.Users.Add(adminUser);
+                await _context.SaveChangesAsync();
+                _logger.LogInformation("Admin user created: {Username}", adminUsername);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to ensure admin user exists");
             }
         }
 

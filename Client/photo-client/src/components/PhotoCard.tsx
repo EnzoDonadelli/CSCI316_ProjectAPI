@@ -21,6 +21,19 @@ export default function PhotoCard({ photo, onClick, ownerUserId, onDeleted, onUp
   const currentUser = useAppSelector(s => (s as any).user.user)
   const photoOwnerId = ownerUserId ?? (photo as any).userId ?? (photo as any).UserId
   const isOwner = !!(currentUser?.id && photoOwnerId && currentUser.id === photoOwnerId)
+  // Determine admin from JWT in localStorage
+  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
+  let isAdmin = false
+  if (token) {
+    try {
+      const payloadPart = token.split('.')[1]
+      // base64url decode
+      const base64 = payloadPart.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(payloadPart.length / 4) * 4, '=')
+      const json = JSON.parse(atob(base64))
+      const role = json.role || json["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"]
+      isAdmin = role === 'admin' || (Array.isArray(role) && role.includes('admin'))
+    } catch {}
+  }
 
   const [editOpen, setEditOpen] = useState(false)
   const [form, setForm] = useState({
@@ -39,7 +52,8 @@ export default function PhotoCard({ photo, onClick, ownerUserId, onDeleted, onUp
       await api.delete(`/api/photos/${photo.photoId}`)
       onDeleted && onDeleted(photo.photoId)
     } catch (err: any) {
-      alert(err?.response?.data || err.message || 'Failed to delete photo')
+      const msg = err?.response?.data?.message ?? err?.response?.data ?? err.message
+      alert(`Failed to delete photo: ${msg}`)
     }
   }
 
@@ -54,10 +68,10 @@ export default function PhotoCard({ photo, onClick, ownerUserId, onDeleted, onUp
     const initialAlbumId = (photo as any).albumId ?? (photo as any).AlbumId
     setAlbumId(initialAlbumId ?? '')
     setEditOpen(true)
-    // Lazy-load current user's albums for selection
-    if (isOwner && currentUser?.id) {
+    // Lazy-load albums for the photo's owner (works for owner and admin)
+    if ((isOwner || isAdmin) && photoOwnerId) {
       setAlbumsLoading(true)
-      api.get(`/api/albums/user/${currentUser.id}`)
+      api.get(`/api/albums/user/${photoOwnerId}`)
         .then(res => {
           const list = (res.data || []).map((a: any) => ({
             albumId: a.albumId ?? a.AlbumId,
@@ -82,7 +96,8 @@ export default function PhotoCard({ photo, onClick, ownerUserId, onDeleted, onUp
       setEditOpen(false)
       onUpdated && onUpdated(photo.photoId)
     } catch (err: any) {
-      alert(err?.response?.data || err.message || 'Failed to update photo')
+      const msg = err?.response?.data?.message ?? err?.response?.data ?? err.message
+      alert(`Failed to update photo: ${msg}`)
     }
   }
   // Prefer backend-served image URL when the API provides a filename.
@@ -141,7 +156,7 @@ export default function PhotoCard({ photo, onClick, ownerUserId, onDeleted, onUp
             <Chip label={`💬 ${photo.commentsCount ?? 0}`} size="small" sx={{ bgcolor: 'rgba(0,0,0,0.5)', color: 'white' }} />
           </Box>
 
-          {isOwner && (
+          {(isOwner || isAdmin) && (
             <Box sx={{ position: 'absolute', right: 8, top: 8, display: 'flex', gap: 1 }} onClick={e => e.stopPropagation()}>
               <Tooltip title="Edit photo">
                 <IconButton size="small" sx={{ bgcolor: 'rgba(0,0,0,0.5)', color: 'white' }} onClick={handleEditOpen}>
@@ -166,7 +181,7 @@ export default function PhotoCard({ photo, onClick, ownerUserId, onDeleted, onUp
             <TextField label="Title" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} fullWidth />
             <TextField label="Description" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} fullWidth multiline rows={3} />
             <TextField label="Tags (comma separated)" value={form.tags} onChange={e => setForm({ ...form, tags: e.target.value })} fullWidth />
-            {isOwner && (
+            {(isOwner || isAdmin) && (
               <FormControl fullWidth>
                 <InputLabel id={`album-select-label-${photo.photoId}`}>Album</InputLabel>
                 <Select

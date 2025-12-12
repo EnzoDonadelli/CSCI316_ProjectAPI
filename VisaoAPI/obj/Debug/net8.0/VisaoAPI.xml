@@ -39,6 +39,16 @@
             Get photos in an album
             </summary>
         </member>
+        <member name="M:VisaoAPI.Controllers.AuthController.AdminUpdateUser(System.Int32,VisaoAPI.DTOs.UpdateUserDto)">
+            <summary>
+            Admin: update any user's profile
+            </summary>
+        </member>
+        <member name="M:VisaoAPI.Controllers.AuthController.AdminDeleteUser(System.Int32)">
+            <summary>
+            Admin: delete any user
+            </summary>
+        </member>
         <member name="M:VisaoAPI.Controllers.AuthController.Register(VisaoAPI.DTOs.RegisterDto)">
             <summary>
             Register a new user account

@@ -7,6 +7,7 @@ import Login from './pages/Login'
 import SignUp from './pages/SignUp'
 import User from './pages/User'
 import AlbumPage from './pages/Album'
+import Chat from './pages/Chat'
 import ProtectedRoute from './components/ProtectedRoute'
 import { useAppDispatch, useAppSelector } from './store/hooks'
 import { logout } from './store/authSlice'
@@ -65,6 +66,7 @@ export default function App() {
           <Route path="/signup" element={<SignUp />} />
           <Route path="/users/:id" element={<User />} />
           <Route path="/albums/:id" element={<AlbumPage />} />
+          <Route path="/chat/:id" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
         </Routes>
       </Container>
     </div>

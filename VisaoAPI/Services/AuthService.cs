@@ -222,7 +222,14 @@ namespace VisaoAPI.Services
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
             var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-            var claims = new[]
+            // Determine if user is admin based on configuration lists
+            var adminSection = _configuration.GetSection("AdminUsers");
+            var adminUsernames = adminSection.GetSection("Usernames").Get<string[]>() ?? Array.Empty<string>();
+            var adminEmails = adminSection.GetSection("Emails").Get<string[]>() ?? Array.Empty<string>();
+            var isAdmin = adminUsernames.Contains(user.Username, StringComparer.OrdinalIgnoreCase)
+                          || adminEmails.Contains(user.Email, StringComparer.OrdinalIgnoreCase);
+
+            var claims = new List<Claim>
             {
                 new Claim(JwtRegisteredClaimNames.Sub, user.UserId.ToString()),
                 new Claim(JwtRegisteredClaimNames.UniqueName, user.Username),
@@ -231,6 +238,12 @@ namespace VisaoAPI.Services
                 new Claim("userId", user.UserId.ToString()),
                 new Claim("username", user.Username)
             };
+            if (isAdmin)
+            {
+                // Add role claim to indicate admin privileges
+                claims.Add(new Claim(ClaimTypes.Role, "admin"));
+                claims.Add(new Claim("role", "admin"));
+            }
 
             var token = new JwtSecurityToken(
                 issuer: issuer,

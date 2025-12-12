@@ -1,5 +1,6 @@
 C:\Users\enzod\Documents\CSCI Final\CSCI316_ProjectAPI\VisaoAPI\bin\Debug\net8.0\appsettings.Development.json
 C:\Users\enzod\Documents\CSCI Final\CSCI316_ProjectAPI\VisaoAPI\bin\Debug\net8.0\appsettings.json
+C:\Users\enzod\Documents\CSCI Final\CSCI316_ProjectAPI\VisaoAPI\bin\Debug\net8.0\VisaoAPI.staticwebassets.runtime.json
 C:\Users\enzod\Documents\CSCI Final\CSCI316_ProjectAPI\VisaoAPI\bin\Debug\net8.0\VisaoAPI.staticwebassets.endpoints.json
 C:\Users\enzod\Documents\CSCI Final\CSCI316_ProjectAPI\VisaoAPI\bin\Debug\net8.0\VisaoAPI.exe
 C:\Users\enzod\Documents\CSCI Final\CSCI316_ProjectAPI\VisaoAPI\bin\Debug\net8.0\VisaoAPI.deps.json
@@ -9,7 +10,11 @@ C:\Users\enzod\Documents\CSCI Final\CSCI316_ProjectAPI\VisaoAPI\bin\Debug\net8.0
 C:\Users\enzod\Documents\CSCI Final\CSCI316_ProjectAPI\VisaoAPI\bin\Debug\net8.0\VisaoAPI.xml
 C:\Users\enzod\Documents\CSCI Final\CSCI316_ProjectAPI\VisaoAPI\bin\Debug\net8.0\Azure.Core.dll
 C:\Users\enzod\Documents\CSCI Final\CSCI316_ProjectAPI\VisaoAPI\bin\Debug\net8.0\Azure.Identity.dll
+C:\Users\enzod\Documents\CSCI Final\CSCI316_ProjectAPI\VisaoAPI\bin\Debug\net8.0\BCrypt.Net-Next.dll
+C:\Users\enzod\Documents\CSCI Final\CSCI316_ProjectAPI\VisaoAPI\bin\Debug\net8.0\Dapper.dll
 C:\Users\enzod\Documents\CSCI Final\CSCI316_ProjectAPI\VisaoAPI\bin\Debug\net8.0\Humanizer.dll
+C:\Users\enzod\Documents\CSCI Final\CSCI316_ProjectAPI\VisaoAPI\bin\Debug\net8.0\Microsoft.AspNetCore.Authentication.JwtBearer.dll
+C:\Users\enzod\Documents\CSCI Final\CSCI316_ProjectAPI\VisaoAPI\bin\Debug\net8.0\Microsoft.AspNetCore.Identity.EntityFrameworkCore.dll
 C:\Users\enzod\Documents\CSCI Final\CSCI316_ProjectAPI\VisaoAPI\bin\Debug\net8.0\Microsoft.Bcl.AsyncInterfaces.dll
 C:\Users\enzod\Documents\CSCI Final\CSCI316_ProjectAPI\VisaoAPI\bin\Debug\net8.0\Microsoft.CodeAnalysis.dll
 C:\Users\enzod\Documents\CSCI Final\CSCI316_ProjectAPI\VisaoAPI\bin\Debug\net8.0\Microsoft.CodeAnalysis.CSharp.dll
@@ -139,8 +144,3 @@ C:\Users\enzod\Documents\CSCI Final\CSCI316_ProjectAPI\VisaoAPI\obj\Debug\net8.0
 C:\Users\enzod\Documents\CSCI Final\CSCI316_ProjectAPI\VisaoAPI\obj\Debug\net8.0\VisaoAPI.pdb
 C:\Users\enzod\Documents\CSCI Final\CSCI316_ProjectAPI\VisaoAPI\obj\Debug\net8.0\VisaoAPI.genruntimeconfig.cache
 C:\Users\enzod\Documents\CSCI Final\CSCI316_ProjectAPI\VisaoAPI\obj\Debug\net8.0\ref\VisaoAPI.dll
-C:\Users\enzod\Documents\CSCI Final\CSCI316_ProjectAPI\VisaoAPI\bin\Debug\net8.0\BCrypt.Net-Next.dll
-C:\Users\enzod\Documents\CSCI Final\CSCI316_ProjectAPI\VisaoAPI\bin\Debug\net8.0\Microsoft.AspNetCore.Authentication.JwtBearer.dll
-C:\Users\enzod\Documents\CSCI Final\CSCI316_ProjectAPI\VisaoAPI\bin\Debug\net8.0\Microsoft.AspNetCore.Identity.EntityFrameworkCore.dll
-C:\Users\enzod\Documents\CSCI Final\CSCI316_ProjectAPI\VisaoAPI\bin\Debug\net8.0\Dapper.dll
-C:\Users\enzod\Documents\CSCI Final\CSCI316_ProjectAPI\VisaoAPI\bin\Debug\net8.0\VisaoAPI.staticwebassets.runtime.json

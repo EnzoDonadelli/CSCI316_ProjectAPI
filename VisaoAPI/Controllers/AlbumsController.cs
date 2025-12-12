@@ -144,13 +144,14 @@ namespace VisaoAPI.Controllers
                 return NotFound();
             }
 
-            // Ensure the authenticated user owns this album
+            // Ensure the authenticated user owns this album or is admin
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var authUserId))
             {
                 return Unauthorized("Invalid user token");
             }
-            if (album.UserId != authUserId)
+            var isAdmin = User.IsInRole("admin") || User.Claims.Any(c => c.Type == "role" && c.Value == "admin");
+            if (album.UserId != authUserId && !isAdmin)
             {
                 return Forbid();
             }
@@ -176,13 +177,14 @@ namespace VisaoAPI.Controllers
                 return NotFound();
             }
 
-            // Ensure the authenticated user owns this album
+            // Ensure the authenticated user owns this album or is admin
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var authUserId))
             {
                 return Unauthorized("Invalid user token");
             }
-            if (albumExists.UserId != authUserId)
+            var isAdmin = User.IsInRole("admin") || User.Claims.Any(c => c.Type == "role" && c.Value == "admin");
+            if (albumExists.UserId != authUserId && !isAdmin)
             {
                 return Forbid();
             }
